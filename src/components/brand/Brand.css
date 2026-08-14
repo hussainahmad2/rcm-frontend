@@ -2,8 +2,8 @@
   display: inline-flex;
   align-items: center;
   gap: 11px;
-  font: 700 15px var(--app-font-serif);
-  letter-spacing: -0.03em;
+  font: 650 15px/1.1 var(--app-font-serif);
+  letter-spacing: -0.025em;
 }
 
 .brand-mark {
