@@ -124,6 +124,11 @@ export const api = {
   refresh: () => request<AuthSessionPayload>('/auth/refresh', { method: 'POST', body: '{}', auth: false }),
   logout: () => request<{ ok: boolean }>('/auth/logout', { method: 'POST', body: '{}', auth: false }),
   me: () => request<{ user: AuthUser; tenant: AuthTenant; accessExpiresIn: number }>('/auth/me'),
+  changePassword: (body: { currentPassword: string; newPassword: string }) =>
+    request<{ ok: boolean }>('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   tenants: () => request<AuthTenant[]>('/auth/tenants', { auth: false }),
   sessionPolicy: () =>
     request<{
@@ -170,8 +175,21 @@ export const api = {
   claim: (id: string) => request<any>(`/claims/${id}`),
   scrubClaim: (id: string) => request<any>(`/claims/${id}/scrub`, { method: 'POST', body: '{}' }),
   submitClaim: (id: string) => request<any>(`/claims/${id}/submit`, { method: 'POST', body: '{}' }),
+  gatewayAdapters: () => request<any>('/gateway/adapters'),
+  gatewaySubmissions: (claimId?: string) =>
+    request<any[]>(claimId ? `/gateway/submissions?claimId=${encodeURIComponent(claimId)}` : '/gateway/submissions'),
+  ingestAcknowledgement: (body: {
+    submissionId?: string;
+    claimId?: string;
+    outcome?: 'ACCEPTED' | 'REJECTED';
+    ackCode?: string;
+    ackMessage?: string;
+  }) => request<any>('/gateway/acknowledgements', { method: 'POST', body: JSON.stringify(body) }),
   denials: () => request<any[]>('/denials'),
   analyzeDenial: (id: string) => request<any>(`/denials/${id}/analyze`, { method: 'POST', body: '{}' }),
+  promoteDenialPrevention: (id: string) =>
+    request<any>(`/denials/${id}/prevent`, { method: 'POST', body: '{}' }),
+  denialKnowledge: () => request<any[]>('/denials/knowledge'),
   appealDraft: (id: string) => request<any>(`/denials/${id}/appeal-draft`, { method: 'POST', body: '{}' }),
   leakage: () => request<any>('/intelligence/leakage'),
   recommendations: () => request<any>('/intelligence/recommendations'),
@@ -191,6 +209,15 @@ export const api = {
   encounters: () => request<any[]>('/encounters'),
   contracts: () => request<any[]>('/contracts'),
   authorizationsRisk: () => request<any>('/authorizations/risk'),
+  authorizations: () => request<any[]>('/authorizations'),
+  evaluateAuthorization: (body: {
+    patientId: string;
+    procedureCode: string;
+    diagnosisCode?: string;
+    payerId?: string;
+  }) => request<any>('/authorizations/evaluate', { method: 'POST', body: JSON.stringify(body) }),
+  createEstimate: (body: { coverageId: string; chargedAmount: number }) =>
+    request<any>('/estimates', { method: 'POST', body: JSON.stringify(body) }),
   eligibilityCheck: (coverageId: string) =>
     request('/eligibility/check', { method: 'POST', body: JSON.stringify({ coverageId }) }),
   codingSuggest: (encounterId: string) =>
@@ -203,6 +230,16 @@ export const api = {
   }) => request<any>('/coding/decision', { method: 'POST', body: JSON.stringify(body) }),
   arQueue: () => request<any[]>('/ar/queue'),
   payments: () => request<any>('/payments'),
+  contractCheckPayment: (paymentId: string) =>
+    request<any>(`/payments/${paymentId}/contract-check`, { method: 'POST', body: '{}' }),
+  eraRemittances: () => request<any[]>('/era/remittances'),
+  eraIngest: (body: Record<string, unknown>) =>
+    request<any>('/era/ingest', { method: 'POST', body: JSON.stringify(body) }),
+  eraDemoPost: (claimId: string, underpay = true) =>
+    request<any>(`/era/demo/${encodeURIComponent(claimId)}?underpay=${underpay}`, {
+      method: 'POST',
+      body: '{}',
+    }),
   audit: () => request<any[]>('/audit'),
   rules: () => request<any[]>('/rules'),
   coverages: () => request<any[]>('/coverages'),
