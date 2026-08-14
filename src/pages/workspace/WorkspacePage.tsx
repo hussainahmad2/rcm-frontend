@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -28,30 +28,63 @@ import {
   Globe2,
   Handshake,
   Hospital,
+  KeyRound,
   LayoutDashboard,
   ListFilter,
   LockKeyhole,
   LogOut,
   Menu,
+  Moon,
   PanelLeftClose,
   PanelLeftOpen,
   Receipt,
   RefreshCw,
   Search,
+  Settings,
   Settings2,
   ShieldAlert,
   SlidersHorizontal,
   Sparkles,
   Stethoscope,
+  Sun,
   UserRoundCheck,
   UsersRound,
   X,
 } from 'lucide-react';
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import { Link, useLocation } from 'wouter';
 import { api, asPercent, money } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import type { WorkspaceView } from './workspace-types';
 import './WorkspacePage.css';
+
+const THEME_KEY = 'velora-theme';
+const CHART_COLORS = ['#2a9d8f', '#1f8fbf', '#1e293b', '#d4a017', '#0ea5e9'];
+
+type AppTheme = 'light' | 'dark';
+
+function readStoredTheme(): AppTheme {
+  if (typeof window === 'undefined') return 'light';
+  return window.localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light';
+}
+
+function applyTheme(theme: AppTheme) {
+  document.documentElement.classList.toggle('dark', theme === 'dark');
+  window.localStorage.setItem(THEME_KEY, theme);
+}
 
 const navItems: { id: WorkspaceView; label: string; icon: LucideIcon }[] = [
   { id: 'overview', label: 'Command center', icon: LayoutDashboard },
@@ -78,6 +111,88 @@ const navItems: { id: WorkspaceView; label: string; icon: LucideIcon }[] = [
 function formatLabel(value?: string) {
   if (!value) return '—';
   return value.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+type AiInsightView = {
+  headline: string;
+  summary: string;
+  factors?: string[];
+  recommendations?: string[];
+  riskLevel?: string;
+  nextAction?: string;
+};
+
+function parseAiInsight(raw: unknown): AiInsightView | null {
+  if (!raw) return null;
+  if (typeof raw === 'object') {
+    const value = raw as Record<string, unknown>;
+    const headline = String(value.headline ?? '').trim();
+    const summary = String(value.summary ?? '').trim();
+    if (headline && summary) {
+      return {
+        headline,
+        summary,
+        factors: Array.isArray(value.factors) ? value.factors.map(String) : undefined,
+        recommendations: Array.isArray(value.recommendations) ? value.recommendations.map(String) : undefined,
+        riskLevel: value.riskLevel ? String(value.riskLevel) : undefined,
+        nextAction: value.nextAction ? String(value.nextAction) : undefined,
+      };
+    }
+  }
+  const text = String(raw).trim();
+  if (!text) return null;
+  try {
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start >= 0 && end > start) {
+      return parseAiInsight(JSON.parse(text.slice(start, end + 1)));
+    }
+  } catch {
+    // fall through to plain text
+  }
+  const [first, ...rest] = text.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+  return {
+    headline: first.slice(0, 120),
+    summary: rest.join(' ') || first,
+  };
+}
+
+function InsightCard({
+  title,
+  statusLabel,
+  statusToneValue,
+  confidence,
+  insight,
+  meta,
+}: {
+  title: string;
+  statusLabel?: string;
+  statusToneValue?: 'coral' | 'amber' | 'neutral' | 'teal' | 'blue';
+  confidence?: number;
+  insight: AiInsightView | null;
+  meta?: ReactNode;
+}) {
+  return (
+    <div className="ax-insight-card" style={{ gridColumn: '1 / -1' }}>
+      <div className="ax-insight-card-top">
+        <div>
+          <span className="ax-kicker">{title}</span>
+          {insight?.headline ? <h3>{insight.headline}</h3> : <h3>Check complete</h3>}
+        </div>
+        <div className="ax-insight-card-badges">
+          {statusLabel ? <StatusPill tone={statusToneValue ?? 'neutral'}>{statusLabel}</StatusPill> : null}
+          {confidence != null ? <span className="ax-insight-conf">{Math.round(confidence * 100)}% confidence</span> : null}
+        </div>
+      </div>
+      {insight?.summary ? <p className="ax-insight-summary">{insight.summary}</p> : null}
+      {insight?.nextAction ? (
+        <p className="ax-insight-next">
+          <b>Next action:</b> {insight.nextAction}
+        </p>
+      ) : null}
+      {meta}
+    </div>
+  );
 }
 
 function priorityTone(priority?: string): 'coral' | 'amber' | 'neutral' | 'teal' {
@@ -147,7 +262,7 @@ function Metric({
         </span>
       </div>
       <strong>{value}</strong>
-      {delta ? <small className={delta.startsWith('↓') ? 'positive' : 'warning'}>{delta}</small> : null}
+      {delta ? <small className={delta.startsWith('â†“') ? 'positive' : 'warning'}>{delta}</small> : null}
     </article>
   );
 }
@@ -224,6 +339,24 @@ function Overview({ onNavigate }: { onNavigate: (view: WorkspaceView) => void })
   const actions = recommendations.data?.todaysActions ?? metrics.todaysActions ?? [];
   const signal = recommendations.data?.summary?.[0] ?? 'Review prioritized revenue signals.';
 
+  const funnelData = [
+    { stage: 'Charges', amount: Number(map.totalCharges ?? 0) },
+    { stage: 'Billed', amount: Number(map.billed ?? 0) },
+    { stage: 'Outstanding', amount: Number(map.outstanding ?? 0) },
+    { stage: 'Paid', amount: Number(map.paid ?? 0) },
+  ];
+  const riskData = [
+    { name: 'At risk', value: Number(metrics.atRisk ?? 0) },
+    { name: 'Denied', value: Number(metrics.denied ?? 0) },
+    { name: 'Underpay', value: Number(metrics.potentialUnderpayment ?? 0) },
+    { name: 'Unbilled', value: Number(metrics.unbilled ?? 0) },
+  ].filter((d) => d.value > 0);
+  const kpiData = [
+    { name: 'Clean claim %', value: Number(metrics.cleanClaimRate ?? 0) },
+    { name: 'Denial %', value: Number(metrics.denialRate ?? 0) },
+    { name: 'Days in AR', value: Number(metrics.daysInAr ?? 0) },
+  ];
+
   return (
     <div className="ax-view">
       <SectionHeading
@@ -247,6 +380,81 @@ function Overview({ onNavigate }: { onNavigate: (view: WorkspaceView) => void })
         <Metric label="Days in AR" value={`${metrics.daysInAr ?? 0}`} icon={Clock3} tone="amber" />
         <Metric label="Denial rate" value={`${metrics.denialRate ?? 0}%`} icon={AlertCircle} tone="blue" />
       </div>
+      <div className="ax-chart-grid">
+        <section className="ax-panel ax-chart-panel">
+          <div className="ax-panel-head">
+            <div>
+              <span className="ax-kicker">Cash path</span>
+              <h2>Revenue funnel</h2>
+            </div>
+          </div>
+          <div className="ax-chart-frame">
+            <ResponsiveContainer width="100%" height={220}>
+              <AreaChart data={funnelData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="axFunnelFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#2a9d8f" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="#2a9d8f" stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                <XAxis dataKey="stage" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} axisLine={false} tickLine={false} width={48} />
+                <Tooltip formatter={(value: number) => money(value)} contentStyle={{ borderRadius: 8, border: '1px solid hsl(var(--border))' }} />
+                <Area type="monotone" dataKey="amount" stroke="#2a9d8f" fill="url(#axFunnelFill)" strokeWidth={2} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </section>
+        <section className="ax-panel ax-chart-panel">
+          <div className="ax-panel-head">
+            <div>
+              <span className="ax-kicker">Exposure mix</span>
+              <h2>At-risk composition</h2>
+            </div>
+          </div>
+          <div className="ax-chart-frame ax-chart-split">
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <Pie data={riskData} dataKey="value" nameKey="name" innerRadius={52} outerRadius={78} paddingAngle={3}>
+                  {riskData.map((entry, index) => (
+                    <Cell key={entry.name} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value: number) => money(value)} contentStyle={{ borderRadius: 8, border: '1px solid hsl(var(--border))' }} />
+              </PieChart>
+            </ResponsiveContainer>
+            <ul className="ax-chart-legend">
+              {riskData.map((entry, index) => (
+                <li key={entry.name}>
+                  <i style={{ background: CHART_COLORS[index % CHART_COLORS.length] }} />
+                  <span>{entry.name}</span>
+                  <b>{money(entry.value)}</b>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+        <section className="ax-panel ax-chart-panel">
+          <div className="ax-panel-head">
+            <div>
+              <span className="ax-kicker">Quality</span>
+              <h2>Operating KPIs</h2>
+            </div>
+          </div>
+          <div className="ax-chart-frame">
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={kpiData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                <XAxis dataKey="name" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} axisLine={false} tickLine={false} width={36} />
+                <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid hsl(var(--border))' }} />
+                <Bar dataKey="value" radius={[6, 6, 0, 0]} fill="#1f8fbf" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </section>
+      </div>
       <div className="ax-dashboard-grid">
         <section className="ax-panel ax-flow-panel">
           <div className="ax-panel-head">
@@ -254,28 +462,106 @@ function Overview({ onNavigate }: { onNavigate: (view: WorkspaceView) => void })
               <span className="ax-kicker">Financial twin</span>
               <h2>Revenue flow</h2>
             </div>
-            <button className="ax-icon-button" aria-label="Revenue flow details" type="button" data-testid="button-flow-details">
-              <ArrowUpRight size={16} />
+            <button
+              className="ax-outline-button"
+              type="button"
+              onClick={() => onNavigate('leakage')}
+              data-testid="button-flow-details"
+            >
+              Inspect leakage <ArrowUpRight size={14} />
             </button>
           </div>
           <div className="ax-flow">
             {[
-              ['01', 'Charges', money(map.totalCharges ?? 0), `Unbilled ${money(map.unbilled ?? 0)}`],
-              ['02', 'Billed', money(map.billed ?? 0), `Pending ${money(map.pending ?? 0)}`],
-              ['03', 'Outstanding', money(map.outstanding ?? 0), `At risk ${money(map.atRisk ?? 0)}`],
-              ['04', 'Paid', money(map.paid ?? 0), `Denied ${money(map.denied ?? 0)}`],
-            ].map(([number, title, amount, caption], index) => (
-              <div className="ax-flow-node" key={title}>
-                <span className="ax-flow-index">{number}</span>
+              {
+                number: '01',
+                title: 'Charges',
+                amount: map.totalCharges ?? 0,
+                caption: `Unbilled ${money(map.unbilled ?? 0)}`,
+                icon: Receipt,
+                share: 100,
+              },
+              {
+                number: '02',
+                title: 'Billed',
+                amount: map.billed ?? 0,
+                caption: `Pending ${money(map.pending ?? 0)}`,
+                icon: FileCheck2,
+                share: Number(map.totalCharges?.amount ?? map.totalCharges ?? 0)
+                  ? Math.round(
+                      (Number(map.billed?.amount ?? map.billed ?? 0) /
+                        Number(map.totalCharges?.amount ?? map.totalCharges ?? 1)) *
+                        100,
+                    )
+                  : 0,
+              },
+              {
+                number: '03',
+                title: 'Outstanding',
+                amount: map.outstanding ?? 0,
+                caption: `At risk ${money(map.atRisk ?? 0)}`,
+                icon: Clock3,
+                share: Number(map.totalCharges?.amount ?? map.totalCharges ?? 0)
+                  ? Math.round(
+                      (Number(map.outstanding?.amount ?? map.outstanding ?? 0) /
+                        Number(map.totalCharges?.amount ?? map.totalCharges ?? 1)) *
+                        100,
+                    )
+                  : 0,
+              },
+              {
+                number: '04',
+                title: 'Paid',
+                amount: map.paid ?? 0,
+                caption: `Denied ${money(map.denied ?? 0)}`,
+                icon: CircleDollarSign,
+                share: Number(map.totalCharges?.amount ?? map.totalCharges ?? 0)
+                  ? Math.round(
+                      (Number(map.paid?.amount ?? map.paid ?? 0) /
+                        Number(map.totalCharges?.amount ?? map.totalCharges ?? 1)) *
+                        100,
+                    )
+                  : 0,
+              },
+            ].map((stage, index, list) => (
+              <div className="ax-flow-node" key={stage.title}>
+                <span className="ax-flow-index">{stage.number}</span>
                 <div className="ax-flow-orb">
-                  <span />
+                  <stage.icon size={18} />
                 </div>
-                <strong>{title}</strong>
-                <b>{amount}</b>
-                <small>{caption}</small>
-                {index < 3 ? <ChevronRight className="ax-flow-arrow" size={16} /> : null}
+                <strong>{stage.title}</strong>
+                <b>{money(stage.amount)}</b>
+                <small>{stage.caption}</small>
+                <div className="ax-flow-meter" aria-hidden>
+                  <i style={{ width: `${Math.max(stage.share, 8)}%` }} />
+                </div>
+                <em>{stage.share}% of charges</em>
+                {index < list.length - 1 ? <ChevronRight className="ax-flow-arrow" size={16} /> : null}
               </div>
             ))}
+          </div>
+          <div className="ax-flow-chart">
+            <div className="ax-flow-chart-head">
+              <span className="ax-kicker">Stage conversion</span>
+              <strong>Cash movement across the cycle</strong>
+            </div>
+            <ResponsiveContainer width="100%" height={170}>
+              <BarChart
+                data={[
+                  { stage: 'Charges', amount: Number(map.totalCharges?.amount ?? map.totalCharges ?? 0) },
+                  { stage: 'Billed', amount: Number(map.billed?.amount ?? map.billed ?? 0) },
+                  { stage: 'Outstanding', amount: Number(map.outstanding?.amount ?? map.outstanding ?? 0) },
+                  { stage: 'Paid', amount: Number(map.paid?.amount ?? map.paid ?? 0) },
+                ]}
+                margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                <XAxis dataKey="stage" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} axisLine={false} tickLine={false} width={48} />
+                <Tooltip formatter={(value: number) => money(value)} contentStyle={{ borderRadius: 8, border: '1px solid hsl(var(--border))' }} />
+                <Bar dataKey="amount" radius={[7, 7, 0, 0]} fill="#2a9d8f" />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
           <div className="ax-flow-foot">
             <span>
@@ -292,7 +578,7 @@ function Overview({ onNavigate }: { onNavigate: (view: WorkspaceView) => void })
             <div>
               <span className="ax-kicker">Operator focus</span>
               <h2>
-                Today’s actions <em>{String(actions.length).padStart(2, '0')}</em>
+                Today's actions <em>{String(actions.length).padStart(2, '0')}</em>
               </h2>
             </div>
             <button className="ax-text-button" type="button" onClick={() => onNavigate('queue')} data-testid="button-view-all-actions">
@@ -325,17 +611,21 @@ function Overview({ onNavigate }: { onNavigate: (view: WorkspaceView) => void })
           </div>
         </section>
       </div>
-      <div className="ax-insight-strip">
-        <Sparkles size={17} />
-        <span>
-          <b>Velora signal:</b> {signal}
-        </span>
-        <button type="button" onClick={() => onNavigate('leakage')} data-testid="button-open-signal">
+      <section className="ax-signal-card" aria-label="Velora signal">
+        <div className="ax-signal-card-icon">
+          <Sparkles size={18} />
+        </div>
+        <div className="ax-signal-card-body">
+          <span className="ax-kicker">Velora signal</span>
+          <p>{signal}</p>
+          <small>Prioritized from leakage, SLA pressure and open work-item value.</small>
+        </div>
+        <button type="button" className="ax-primary-button" onClick={() => onNavigate('leakage')} data-testid="button-open-signal">
           Open signal <ArrowRight size={13} />
         </button>
-      </div>
+      </section>
       {(recommendations.data?.summary ?? []).length > 1 ? (
-        <section className="ax-panel" style={{ marginTop: '1rem' }}>
+        <section className="ax-panel">
           <div className="ax-panel-head">
             <div>
               <span className="ax-kicker">Recommendations</span>
@@ -362,14 +652,34 @@ function WorkQueue() {
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState('');
   const [query, setQuery] = useState('');
-  const [module, setModule] = useState('All modules');
-  const [status, setStatus] = useState('All statuses');
-  const [priority, setPriority] = useState('All priorities');
+  const [module, setModule] = useState('');
+  const [status, setStatus] = useState('');
+  const [priority, setPriority] = useState('');
+  const [sortBy, setSortBy] = useState<'impact' | 'priority' | 'due'>('impact');
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [actionMessage, setActionMessage] = useState('');
 
   const workItems = useQuery({ queryKey: ['work-items'], queryFn: () => api.workItems() });
   const complete = useMutation({
     mutationFn: (id: string) => api.updateWorkItem(id, { status: 'COMPLETED' }),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['work-items'] }),
+    onSuccess: () => {
+      setActionMessage('Work item marked complete.');
+      void queryClient.invalidateQueries({ queryKey: ['work-items'] });
+    },
+  });
+  const escalate = useMutation({
+    mutationFn: (id: string) => api.updateWorkItem(id, { status: 'IN_PROGRESS', assignedUser: 'Escalation desk' }),
+    onSuccess: () => {
+      setActionMessage('Work item escalated to the escalation desk.');
+      void queryClient.invalidateQueries({ queryKey: ['work-items'] });
+    },
+  });
+  const startWork = useMutation({
+    mutationFn: (id: string) => api.updateWorkItem(id, { status: 'IN_PROGRESS' }),
+    onSuccess: () => {
+      setActionMessage('Work item moved to In progress.');
+      void queryClient.invalidateQueries({ queryKey: ['work-items'] });
+    },
   });
 
   const items = (workItems.data ?? []).filter((item: any) => item.status !== 'COMPLETED');
@@ -377,18 +687,46 @@ function WorkQueue() {
     () => Array.from(new Set(items.map((item: any) => item.module).filter(Boolean))) as string[],
     [items],
   );
-  const visible = useMemo(
-    () =>
-      items
-        .filter((item: any) =>
-          [item.title, item.id, item.payer, item.reason, item.module].join(' ').toLowerCase().includes(query.toLowerCase()),
-        )
-        .filter((item: any) => module === 'All modules' || item.module === module)
-        .filter((item: any) => status === 'All statuses' || item.status === status)
-        .filter((item: any) => priority === 'All priorities' || item.priority === priority),
-    [items, query, module, status, priority],
+  const statuses = useMemo(
+    () => Array.from(new Set(items.map((item: any) => item.status).filter(Boolean))) as string[],
+    [items],
   );
+  const priorities = useMemo(
+    () => Array.from(new Set(items.map((item: any) => item.priority).filter(Boolean))) as string[],
+    [items],
+  );
+
+  const priorityRank: Record<string, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 };
+
+  const visible = useMemo(() => {
+    const filtered = items
+      .filter((item: any) =>
+        [item.title, item.id, item.payer, item.reason, item.module].join(' ').toLowerCase().includes(query.toLowerCase()),
+      )
+      .filter((item: any) => !module || item.module === module)
+      .filter((item: any) => !status || item.status === status)
+      .filter((item: any) => !priority || item.priority === priority);
+
+    return [...filtered].sort((a: any, b: any) => {
+      if (sortBy === 'priority') {
+        return (priorityRank[a.priority] ?? 9) - (priorityRank[b.priority] ?? 9);
+      }
+      if (sortBy === 'due') {
+        return new Date(a.dueAt ?? 0).getTime() - new Date(b.dueAt ?? 0).getTime();
+      }
+      return Number(b.valueAtRisk?.amount ?? b.valueAtRisk ?? 0) - Number(a.valueAtRisk?.amount ?? a.valueAtRisk ?? 0);
+    });
+  }, [items, query, module, status, priority, sortBy]);
+
   const selected = items.find((item: any) => item.id === selectedId) ?? visible[0];
+  const filtersActive = Boolean(module || status || priority || query);
+
+  const clearFilters = () => {
+    setQuery('');
+    setModule('');
+    setStatus('');
+    setPriority('');
+  };
 
   if (workItems.isLoading) return <div className="ax-view"><LoadingState label="Loading work queue…" /></div>;
   if (workItems.error) return <div className="ax-view"><ErrorState error={workItems.error} onRetry={() => void workItems.refetch()} /></div>;
@@ -416,28 +754,66 @@ function WorkQueue() {
             data-testid="input-work-queue-search"
           />
         </div>
-        <select value={module} onChange={(event) => setModule(event.target.value)} aria-label="Filter by module" data-testid="select-filter-module">
-          <option>All modules</option>
-          {modules.map((value) => (
-            <option key={value}>{value}</option>
-          ))}
-        </select>
-        <select value={status} onChange={(event) => setStatus(event.target.value)} aria-label="Filter by status" data-testid="select-filter-status">
-          <option>All statuses</option>
-          {['OPEN', 'IN_PROGRESS', 'READY', 'BLOCKED'].map((value) => (
-            <option key={value}>{value}</option>
-          ))}
-        </select>
-        <select value={priority} onChange={(event) => setPriority(event.target.value)} aria-label="Filter by priority" data-testid="select-filter-priority">
-          <option>All priorities</option>
-          {['HIGH', 'MEDIUM', 'LOW'].map((value) => (
-            <option key={value}>{value}</option>
-          ))}
-        </select>
-        <button className="ax-icon-button" type="button" aria-label="More filters" data-testid="button-more-filters">
+        <label className="ax-filter-field">
+          <span>Module</span>
+          <select value={module} onChange={(event) => setModule(event.target.value)} aria-label="Filter by module" data-testid="select-filter-module">
+            <option value="">All modules</option>
+            {modules.map((value) => (
+              <option key={value} value={value}>
+                {formatLabel(value)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="ax-filter-field">
+          <span>Status</span>
+          <select value={status} onChange={(event) => setStatus(event.target.value)} aria-label="Filter by status" data-testid="select-filter-status">
+            <option value="">All statuses</option>
+            {(statuses.length ? statuses : ['OPEN', 'IN_PROGRESS', 'READY', 'BLOCKED']).map((value) => (
+              <option key={value} value={value}>
+                {formatLabel(value)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="ax-filter-field">
+          <span>Priority</span>
+          <select value={priority} onChange={(event) => setPriority(event.target.value)} aria-label="Filter by priority" data-testid="select-filter-priority">
+            <option value="">All priorities</option>
+            {(priorities.length ? priorities : ['HIGH', 'MEDIUM', 'LOW']).map((value) => (
+              <option key={value} value={value}>
+                {formatLabel(value)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          className={`ax-icon-button ${showAdvanced || filtersActive ? 'ax-filter-active' : ''}`}
+          type="button"
+          aria-label="More filters"
+          aria-pressed={showAdvanced}
+          onClick={() => setShowAdvanced((open) => !open)}
+          data-testid="button-more-filters"
+        >
           <Filter size={16} />
         </button>
       </div>
+      {showAdvanced ? (
+        <div className="ax-queue-advanced">
+          <label className="ax-filter-field">
+            <span>Sort</span>
+            <select value={sortBy} onChange={(event) => setSortBy(event.target.value as 'impact' | 'priority' | 'due')} aria-label="Sort work items" data-testid="select-sort-queue">
+              <option value="impact">Impact (value)</option>
+              <option value="priority">Priority</option>
+              <option value="due">Due date</option>
+            </select>
+          </label>
+          <button className="ax-outline-button" type="button" onClick={clearFilters} disabled={!filtersActive} data-testid="button-clear-filters">
+            Clear filters
+          </button>
+        </div>
+      ) : null}
+      {actionMessage ? <p className="ax-inline-success">{actionMessage}</p> : null}
       <div className="ax-queue-layout">
         <section className="ax-panel ax-queue-list">
           <div className="ax-panel-head">
@@ -446,11 +822,11 @@ function WorkQueue() {
               <h2>
                 {visible.length} items{' '}
                 <em>
-                  · {money(visible.reduce((sum: number, item: any) => sum + (item.valueAtRisk?.amount ?? 0), 0))} value
+                  · {money(visible.reduce((sum: number, item: any) => sum + (item.valueAtRisk?.amount ?? item.valueAtRisk ?? 0), 0))} value
                 </em>
               </h2>
             </div>
-            <span className="ax-mono">SORT: IMPACT</span>
+            <span className="ax-sort-label">Sort · {formatLabel(sortBy)}</span>
           </div>
           <div className="ax-table-head">
             <span>Work item</span>
@@ -463,6 +839,11 @@ function WorkQueue() {
               <CheckCircle2 size={22} />
               <b>Queue is clear</b>
               <p>No work items match these filters.</p>
+              {filtersActive ? (
+                <button className="ax-outline-button" type="button" onClick={clearFilters}>
+                  Reset filters
+                </button>
+              ) : null}
             </div>
           ) : (
             visible.map((item: any) => (
@@ -470,7 +851,10 @@ function WorkQueue() {
                 type="button"
                 className={`ax-queue-row ${selected?.id === item.id ? 'selected' : ''}`}
                 key={item.id}
-                onClick={() => setSelectedId(item.id)}
+                onClick={() => {
+                  setSelectedId(item.id);
+                  setActionMessage('');
+                }}
                 data-testid={`row-work-item-${item.id}`}
               >
                 <span className="ax-queue-main">
@@ -551,6 +935,17 @@ function WorkQueue() {
                 <p>{selected.reason}</p>
               </div>
               <div className="ax-inspection-actions">
+                {selected.status === 'OPEN' || selected.status === 'READY' ? (
+                  <button
+                    className="ax-outline-button"
+                    type="button"
+                    disabled={startWork.isPending}
+                    onClick={() => startWork.mutate(selected.id)}
+                    data-testid={`button-start-${selected.id}`}
+                  >
+                    <Activity size={14} /> {startWork.isPending ? 'Starting…' : 'Start work'}
+                  </button>
+                ) : null}
                 <button
                   className="ax-primary-button"
                   type="button"
@@ -560,11 +955,21 @@ function WorkQueue() {
                 >
                   <Check size={15} /> {complete.isPending ? 'Completing…' : 'Mark complete'}
                 </button>
-                <button className="ax-outline-button" type="button" data-testid={`button-escalate-${selected.id}`}>
-                  <ArrowUpRight size={14} /> Escalate
+                <button
+                  className="ax-outline-button"
+                  type="button"
+                  disabled={escalate.isPending}
+                  onClick={() => escalate.mutate(selected.id)}
+                  data-testid={`button-escalate-${selected.id}`}
+                >
+                  <ArrowUpRight size={14} /> {escalate.isPending ? 'Escalating…' : 'Escalate'}
                 </button>
               </div>
-              {complete.isError ? <p className="ax-inline-error">{(complete.error as Error).message}</p> : null}
+              {complete.isError || escalate.isError || startWork.isError ? (
+                <p className="ax-inline-error">
+                  {((complete.error || escalate.error || startWork.error) as Error).message}
+                </p>
+              ) : null}
             </>
           ) : (
             <div className="ax-empty">
@@ -710,11 +1115,21 @@ function Patients() {
 }
 
 function Eligibility() {
+  const queryClient = useQueryClient();
   const [resultByCoverage, setResultByCoverage] = useState<Record<string, any>>({});
+  const [estimateByCoverage, setEstimateByCoverage] = useState<Record<string, any>>({});
   const coverages = useQuery({ queryKey: ['coverages'], queryFn: api.coverages });
   const check = useMutation({
     mutationFn: (coverageId: string) => api.eligibilityCheck(coverageId),
-    onSuccess: (data, coverageId) => setResultByCoverage((current) => ({ ...current, [coverageId]: data })),
+    onSuccess: (data, coverageId) => {
+      setResultByCoverage((current) => ({ ...current, [coverageId]: data }));
+      void queryClient.invalidateQueries({ queryKey: ['work-items'] });
+      void queryClient.invalidateQueries({ queryKey: ['coverages'] });
+    },
+  });
+  const estimate = useMutation({
+    mutationFn: (body: { coverageId: string; chargedAmount: number }) => api.createEstimate(body),
+    onSuccess: (data, vars) => setEstimateByCoverage((current) => ({ ...current, [vars.coverageId]: data })),
   });
 
   if (coverages.isLoading) return <div className="ax-view"><LoadingState label="Loading coverages…" /></div>;
@@ -724,7 +1139,11 @@ function Eligibility() {
 
   return (
     <div className="ax-view">
-      <SectionHeading eyebrow="Access integrity" title="Eligibility" detail="Verify coverage status and estimated patient responsibility before claim creation." />
+      <SectionHeading
+        eyebrow="Patient financial access"
+        title="Eligibility & estimates"
+        detail="Verify coverage, then estimate patient responsibility before service — Layer 1 of the RCM platform."
+      />
       <section className="ax-panel ax-table-panel">
         <div className="ax-panel-head">
           <div>
@@ -733,7 +1152,7 @@ function Eligibility() {
           </div>
         </div>
         <div className="ax-claims-table">
-          <div className="ax-table-head">
+          <div className="ax-table-head ax-table-head-5">
             <span>Coverage</span>
             <span>Plan / member</span>
             <span>Responsibility</span>
@@ -742,8 +1161,10 @@ function Eligibility() {
           </div>
           {list.map((coverage: any) => {
             const result = resultByCoverage[coverage.id];
+            const est = estimateByCoverage[coverage.id];
+            const insight = parseAiInsight(result?.insight ?? result?.ai?.output);
             return (
-              <div className="ax-claim-row" key={coverage.id} data-testid={`row-coverage-${coverage.id}`}>
+              <div className="ax-claim-row ax-claim-row-5" key={coverage.id} data-testid={`row-coverage-${coverage.id}`}>
                 <span>
                   <b>{coverage.id}</b>
                   <small>Patient {coverage.patientId}</small>
@@ -752,28 +1173,84 @@ function Eligibility() {
                   <b>{coverage.planName}</b>
                   <small>{coverage.memberId}</small>
                 </span>
-                <strong>
+                <strong className="ax-claim-amount">
                   {money(coverage.deductibleRemaining ?? 0)}
-                  <small style={{ display: 'block', fontWeight: 400 }}>
+                  <small>
                     Copay {money(coverage.copay ?? 0)} · Coins {coverage.coinsurancePercent}%
                   </small>
                 </strong>
                 <StatusPill tone={statusTone(coverage.status)}>{formatLabel(coverage.status)}</StatusPill>
-                <button
-                  className="ax-outline-button"
-                  type="button"
-                  disabled={check.isPending}
-                  onClick={() => check.mutate(coverage.id)}
-                  data-testid={`button-eligibility-${coverage.id}`}
-                >
-                  {check.isPending && check.variables === coverage.id ? 'Checking…' : 'Run check'}
-                </button>
+                <span className="ax-row-actions">
+                  <button
+                    className="ax-outline-button"
+                    type="button"
+                    disabled={check.isPending}
+                    onClick={() => check.mutate(coverage.id)}
+                    data-testid={`button-eligibility-${coverage.id}`}
+                  >
+                    {check.isPending && check.variables === coverage.id ? 'Checking…' : 'Run check'}
+                  </button>
+                  <button
+                    className="ax-outline-button"
+                    type="button"
+                    disabled={estimate.isPending}
+                    onClick={() => estimate.mutate({ coverageId: coverage.id, chargedAmount: 1000 })}
+                    data-testid={`button-estimate-${coverage.id}`}
+                  >
+                    {estimate.isPending && estimate.variables?.coverageId === coverage.id ? 'Estimating…' : 'Estimate $1k'}
+                  </button>
+                </span>
                 {result ? (
-                  <span className="ax-mono" style={{ gridColumn: '1 / -1' }}>
-                    Result: {result.active ? 'ACTIVE' : 'INACTIVE'} · AI conf{' '}
-                    {Math.round((result.ai?.confidence ?? 0) * 100)}%
-                    {result.ai?.output ? ` · ${String(result.ai.output).slice(0, 120)}` : ''}
-                  </span>
+                  <InsightCard
+                    title="Eligibility result"
+                    statusLabel={result.active ? 'Active' : 'Inactive'}
+                    statusToneValue={result.active ? 'teal' : 'coral'}
+                    confidence={result.ai?.confidence}
+                    insight={insight}
+                    meta={
+                      result.patientResponsibilityEstimate ? (
+                        <div className="ax-insight-meta">
+                          <span>
+                            Deductible rem. <b>{money(result.patientResponsibilityEstimate.deductible)}</b>
+                          </span>
+                          <span>
+                            Copay <b>{money(result.patientResponsibilityEstimate.copay)}</b>
+                          </span>
+                          <span>
+                            Coinsurance <b>{result.patientResponsibilityEstimate.coinsurancePercent}%</b>
+                          </span>
+                        </div>
+                      ) : null
+                    }
+                  />
+                ) : null}
+                {est && !est.error ? (
+                  <div className="ax-insight-card ax-insight-card-estimate" style={{ gridColumn: '1 / -1' }}>
+                    <div className="ax-insight-card-top">
+                      <div>
+                        <span className="ax-kicker">Patient estimate</span>
+                        <h3>Responsibility on a $1,000 charge</h3>
+                      </div>
+                      <StatusPill tone="blue">Estimate</StatusPill>
+                    </div>
+                    <div className="ax-insight-meta">
+                      <span>
+                        Patient pays <b>{money(est.patientResponsibility)}</b>
+                      </span>
+                      <span>
+                        Payer expected <b>{money(est.expectedPayerPayment)}</b>
+                      </span>
+                      <span>
+                        Deductible applied <b>{money(est.breakdown?.deductibleApplied)}</b>
+                      </span>
+                      <span>
+                        Copay <b>{money(est.breakdown?.copay)}</b>
+                      </span>
+                      <span>
+                        Coinsurance <b>{money(est.breakdown?.coinsurance)}</b>
+                      </span>
+                    </div>
+                  </div>
                 ) : null}
               </div>
             );
@@ -785,23 +1262,65 @@ function Eligibility() {
 }
 
 function Authorizations() {
+  const queryClient = useQueryClient();
+  const [evalResult, setEvalResult] = useState<any>(null);
   const auth = useQuery({ queryKey: ['authorizations-risk'], queryFn: api.authorizationsRisk });
+  const patients = useQuery({ queryKey: ['patients'], queryFn: api.patients });
+  const evaluate = useMutation({
+    mutationFn: api.evaluateAuthorization,
+    onSuccess: (data) => {
+      setEvalResult(data);
+      void queryClient.invalidateQueries({ queryKey: ['authorizations-risk'] });
+      void queryClient.invalidateQueries({ queryKey: ['work-items'] });
+    },
+  });
 
   if (auth.isLoading) return <div className="ax-view"><LoadingState label="Loading authorizations…" /></div>;
   if (auth.error) return <div className="ax-view"><ErrorState error={auth.error} onRetry={() => void auth.refetch()} /></div>;
 
   const data = auth.data ?? {};
   const items = data.items ?? [];
+  const firstPatientId = patients.data?.[0]?.id as string | undefined;
 
   return (
     <div className="ax-view">
-      <SectionHeading eyebrow="Prior auth risk" title="Authorizations" detail="Expiring, exhausted and pending authorizations that can block clean claim flow." />
+      <SectionHeading
+        eyebrow="Patient financial access"
+        title="Authorizations"
+        detail="Evaluate auth rules before service. Missing auth creates an AUTH_REQUIRED work item — denial prevented."
+      />
       <div className="ax-metrics">
         <Metric label="Expires in 7 days" value={String(data.expiresWithin7Days ?? 0)} icon={Clock3} tone="amber" />
         <Metric label="Missing / denied" value={String(data.missingAuthorization ?? 0)} icon={ShieldAlert} tone="coral" />
         <Metric label="Visits almost exhausted" value={String(data.visitsAlmostExhausted ?? 0)} icon={AlertCircle} tone="amber" />
         <Metric label="Pending payer" value={String(data.pendingPayerResponse ?? 0)} icon={Activity} tone="blue" />
       </div>
+      <section className="ax-panel" style={{ marginBottom: 16 }}>
+        <div className="ax-panel-head">
+          <div>
+            <span className="ax-kicker">Pre-service rules</span>
+            <h2>Evaluate MRI authorization</h2>
+          </div>
+          <button
+            className="ax-outline-button"
+            type="button"
+            disabled={!firstPatientId || evaluate.isPending}
+            onClick={() =>
+              firstPatientId &&
+              evaluate.mutate({ patientId: firstPatientId, procedureCode: '70553', diagnosisCode: 'M54.5' })
+            }
+            data-testid="button-evaluate-auth"
+          >
+            {evaluate.isPending ? 'Evaluating…' : 'Run auth rules (70553)'}
+          </button>
+        </div>
+        {evalResult ? (
+          <p className="ax-mono" style={{ padding: '0 16px 16px', margin: 0 }}>
+            Required: {String(evalResult.authorizationRequired)} · Work item:{' '}
+            {evalResult.workItem?.id ?? 'none'} · {evalResult.workItem?.title ?? evalResult.existingAuthorization?.status ?? '—'}
+          </p>
+        ) : null}
+      </section>
       <section className="ax-panel ax-table-panel">
         <div className="ax-panel-head">
           <div>
@@ -1123,7 +1642,7 @@ function Charges() {
     onSuccess: (data, id) => {
       setNote(
         data?.claim
-          ? `Billed ${id} → draft claim ${data.claim.claimNumber ?? data.claim.id}`
+          ? `Billed ${id} â†’ draft claim ${data.claim.claimNumber ?? data.claim.id}`
           : `Billed ${id}`,
       );
       void queryClient.invalidateQueries({ queryKey: ['charges'] });
@@ -1209,6 +1728,7 @@ function Claims() {
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string>('');
   const [actionNote, setActionNote] = useState<string>('');
+  const [lastScrub, setLastScrub] = useState<any>(null);
   const claims = useQuery({ queryKey: ['claims'], queryFn: api.claims });
   const detail = useQuery({
     queryKey: ['claim', selectedId],
@@ -1218,21 +1738,43 @@ function Claims() {
   const scrub = useMutation({
     mutationFn: (id: string) => api.scrubClaim(id),
     onSuccess: (data, id) => {
-      setActionNote(`Scrubbed ${id}: quality ${data?.claim?.qualityScore ?? data?.qualityScore ?? 'updated'}`);
+      setLastScrub(data);
+      const blocked = data?.blockingCount ?? 0;
+      const warned = data?.warningCount ?? 0;
+      const score = data?.claim?.qualityScore ?? data?.qualityScore ?? '—';
+      setActionNote(
+        `Scrubbed ${id}: score ${score} · ${data?.evaluatedRules ?? 0} rules evaluated · ${blocked} blocking · ${warned} warnings${data?.ready ? ' · READY' : ' · held as DRAFT'}`,
+      );
       setSelectedId(id);
       void queryClient.invalidateQueries({ queryKey: ['claims'] });
       void queryClient.invalidateQueries({ queryKey: ['claim', id] });
+      void queryClient.invalidateQueries({ queryKey: ['work-items'] });
     },
     onError: (error) => setActionNote((error as Error).message),
   });
   const submit = useMutation({
     mutationFn: (id: string) => api.submitClaim(id),
     onSuccess: (data, id) => {
-      setActionNote(`Submitted ${id} via ${data?.gateway?.standard ?? 'gateway'}`);
+      const ack = data?.acknowledgement;
+      const gw = data?.gateway;
+      setActionNote(
+        `Submitted ${id} via ${gw?.adapter ?? 'adapter'} â†’ ${gw?.clearinghouse ?? gw?.standard ?? 'gateway'}` +
+          (ack
+            ? ` · ACK ${ack.outcome} (${ack.ackCode})`
+            : ''),
+      );
+      setLastScrub(null);
       void queryClient.invalidateQueries({ queryKey: ['claims'] });
       void queryClient.invalidateQueries({ queryKey: ['claim', id] });
+      void queryClient.invalidateQueries({ queryKey: ['work-items'] });
+      void queryClient.invalidateQueries({ queryKey: ['gateway-submissions'] });
     },
     onError: (error) => setActionNote((error as Error).message),
+  });
+  const submissions = useQuery({
+    queryKey: ['gateway-submissions', selectedId],
+    queryFn: () => api.gatewaySubmissions(selectedId),
+    enabled: Boolean(selectedId),
   });
 
   if (claims.isLoading) return <div className="ax-view"><LoadingState label="Loading claims…" /></div>;
@@ -1244,13 +1786,21 @@ function Claims() {
   const events = detail.data?.events ?? [];
   const validations = detail.data?.validations ?? [];
   const lines = detail.data?.lines ?? [];
+  const firedFromEvent = [...events]
+    .reverse()
+    .find((event: any) => event.eventType === 'ClaimValidated' && Array.isArray(event.payload?.firedRules))
+    ?.payload?.firedRules;
+  const firedRules =
+    (lastScrub?.claim?.id === selectedId ? lastScrub?.firedRules : null) ??
+    firedFromEvent ??
+    [];
 
   return (
     <div className="ax-view">
       <SectionHeading
-        eyebrow="Submission control"
+        eyebrow="Billing engine"
         title="Claims"
-        detail="Quality, payer context and denial risk before a claim leaves the building."
+        detail="Executable RuleVersion scrub — quality, payer context and denial risk before submission."
         action={
           <button className="ax-outline-button" type="button" onClick={() => void claims.refetch()} data-testid="button-export-claims">
             <RefreshCw size={14} /> Refresh
@@ -1349,7 +1899,7 @@ function Claims() {
             <div className="ax-empty">
               <FileCheck2 size={22} />
               <b>Select a claim</b>
-              <p>Open a claim to inspect scrub layers, events and line detail.</p>
+              <p>Open a claim to inspect scrub layers, fired rules and line detail.</p>
             </div>
           ) : detail.isLoading ? (
             <LoadingState label="Loading claim…" />
@@ -1395,19 +1945,96 @@ function Claims() {
                 <span className="ax-kicker">Scrub layers</span>
                 <div className="ax-scrub-layers">
                   {validations.length === 0 ? (
-                    <p>No scrub results yet — run Scrub to populate layers.</p>
+                    <p>No scrub results yet — run Scrub to evaluate RuleVersions.</p>
                   ) : (
                     validations.map((layer: any) => (
                       <div className="ax-scrub-layer" key={layer.id ?? layer.layer}>
                         <StatusPill tone={statusTone(layer.status)}>{formatLabel(layer.status)}</StatusPill>
                         <span>
                           <b>{layer.layer}</b>
-                          <small>{layer.message}</small>
+                          <small>
+                            {layer.message}
+                            {layer.ruleId ? ` · ${layer.ruleId}` : ''}
+                          </small>
                         </span>
                       </div>
                     ))
                   )}
                 </div>
+              </div>
+              {firedRules.length > 0 ? (
+                <div className="ax-reason">
+                  <span className="ax-kicker">Fired rules</span>
+                  <div className="ax-scrub-layers">
+                    {firedRules.map((rule: any) => (
+                      <div className="ax-scrub-layer" key={`${rule.ruleKey}-${rule.action}`}>
+                        <StatusPill
+                          tone={
+                            rule.severity === 'BLOCKING' ? 'coral' : rule.severity === 'WARNING' ? 'amber' : 'teal'
+                          }
+                        >
+                          {formatLabel(rule.severity)}
+                        </StatusPill>
+                        <span>
+                          <b>{rule.ruleKey}</b>
+                          <small>
+                            {rule.layer} · {rule.action} · {rule.message}
+                          </small>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              <div className="ax-reason">
+                <span className="ax-kicker">Gateway / clearinghouse</span>
+                {(submissions.data ?? []).length === 0 ? (
+                  <p>No submissions yet — Submit a READY claim to translate via country adapter.</p>
+                ) : (
+                  <div className="ax-scrub-layers">
+                    {(submissions.data ?? []).slice(0, 3).map((row: any) => (
+                      <div className="ax-scrub-layer" key={row.id}>
+                        <StatusPill
+                          tone={
+                            row.status === 'ACK_ACCEPTED'
+                              ? 'teal'
+                              : row.status === 'ACK_REJECTED'
+                                ? 'coral'
+                                : 'amber'
+                          }
+                        >
+                          {formatLabel(row.status)}
+                        </StatusPill>
+                        <span>
+                          <b>
+                            {row.adapterKey} · {row.outboundFormat}
+                          </b>
+                          <small>
+                            {row.clearinghouse}
+                            {row.ackCode ? ` · ACK ${row.ackCode}` : ''}
+                            {row.ackMessage ? ` — ${row.ackMessage}` : ''}
+                            {row.controlNumber ? ` · ctl ${row.controlNumber}` : ''}
+                          </small>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {(submissions.data ?? [])[0]?.wirePreview ? (
+                  <pre
+                    className="ax-mono"
+                    style={{
+                      marginTop: 10,
+                      maxHeight: 160,
+                      overflow: 'auto',
+                      whiteSpace: 'pre-wrap',
+                      fontSize: 11,
+                      opacity: 0.85,
+                    }}
+                  >
+                    {(submissions.data ?? [])[0].wirePreview}
+                  </pre>
+                ) : null}
               </div>
               <div className="ax-reason">
                 <span className="ax-kicker">Events</span>
@@ -1435,12 +2062,19 @@ function Claims() {
 }
 
 function Denials() {
+  const queryClient = useQueryClient();
   const [selected, setSelected] = useState<string | null>(null);
   const [aiResult, setAiResult] = useState<any>(null);
   const denials = useQuery({ queryKey: ['denials'], queryFn: api.denials });
+  const knowledge = useQuery({ queryKey: ['denial-knowledge'], queryFn: api.denialKnowledge });
   const analyze = useMutation({
     mutationFn: (id: string) => api.analyzeDenial(id),
-    onSuccess: setAiResult,
+    onSuccess: (data) => {
+      setAiResult(data);
+      void queryClient.invalidateQueries({ queryKey: ['denials'] });
+      void queryClient.invalidateQueries({ queryKey: ['denial-knowledge'] });
+      void queryClient.invalidateQueries({ queryKey: ['rules'] });
+    },
   });
   const appeal = useMutation({
     mutationFn: (id: string) => api.appealDraft(id),
@@ -1451,6 +2085,7 @@ function Denials() {
   if (denials.error) return <div className="ax-view"><ErrorState error={denials.error} onRetry={() => void denials.refetch()} /></div>;
 
   const list = denials.data ?? [];
+  const knowledgeRows = knowledge.data ?? [];
   const valueAtRisk = list.reduce((sum: number, denial: any) => sum + (denial.amount?.amount ?? 0), 0);
   const avgRecovery =
     list.length === 0
@@ -1460,9 +2095,9 @@ function Denials() {
   return (
     <div className="ax-view">
       <SectionHeading
-        eyebrow="Recovery command"
+        eyebrow="Recovery + prevention"
         title="Denials & appeals"
-        detail={`${money(valueAtRisk)} of denial value is open for operator decision.`}
+        detail="Analyze root cause â†’ write Denial Knowledge Base entry â†’ promote executable scrub RuleVersion so the next claim is blocked before submission."
       />
       <div className="ax-denial-summary">
         <div>
@@ -1481,9 +2116,9 @@ function Denials() {
           <small>Gross denial exposure</small>
         </div>
         <div>
-          <span>Appeals ready</span>
-          <strong>{list.filter((d: any) => d.status === 'APPEALED' || d.nextAction?.toLowerCase().includes('appeal')).length}</strong>
-          <small>Next-action signal</small>
+          <span>Prevention rules</span>
+          <strong>{knowledgeRows.length}</strong>
+          <small>Denial â†’ scrub feedback</small>
         </div>
       </div>
       <div className="ax-denial-grid">
@@ -1535,7 +2170,7 @@ function Denials() {
                   }}
                   data-testid={`button-analyze-${denial.id}`}
                 >
-                  Analyze
+                  Analyze + prevent
                 </button>
                 <button
                   className="ax-primary-button"
@@ -1559,14 +2194,56 @@ function Denials() {
         <section className="ax-panel" style={{ marginTop: '1rem' }}>
           <div className="ax-panel-head">
             <div>
-              <span className="ax-kicker">AI assist</span>
-              <h2>{selected ?? 'Denial'} analysis / draft</h2>
+              <span className="ax-kicker">AI assist + prevention</span>
+              <h2>{selected ?? 'Denial'} analysis</h2>
             </div>
           </div>
           <div className="ax-reason">
             <p>
               {(aiResult.ai?.output || aiResult.draft || aiResult.appealDraft || JSON.stringify(aiResult).slice(0, 500))}
             </p>
+            {aiResult.preventionRule ? (
+              <p className="ax-mono" style={{ marginTop: 12 }}>
+                Prevention rule: {aiResult.preventionRule.ruleKey} v{aiResult.preventionRule.version} ·{' '}
+                {aiResult.preventionRule.action} · {aiResult.preventionRule.severity}
+                {aiResult.scrubHint ? ` — ${aiResult.scrubHint}` : ''}
+              </p>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+      {knowledgeRows.length > 0 ? (
+        <section className="ax-panel ax-table-panel" style={{ marginTop: '1rem' }}>
+          <div className="ax-panel-head">
+            <div>
+              <span className="ax-kicker">Denial knowledge base</span>
+              <h2>{knowledgeRows.length} prevention links</h2>
+            </div>
+          </div>
+          <div className="ax-claims-table">
+            <div className="ax-table-head">
+              <span>Denial</span>
+              <span>Root cause</span>
+              <span>Prevention rule</span>
+              <span>Procedures</span>
+            </div>
+            {knowledgeRows.map((row: any) => (
+              <div className="ax-claim-row" key={row.id} data-testid={`row-dkb-${row.id}`}>
+                <span>
+                  <b>{row.denialId}</b>
+                  <small>{row.reasonCode}</small>
+                </span>
+                <span>
+                  <b>{row.rootCause}</b>
+                  <small>{row.category}</small>
+                </span>
+                <span>
+                  <b>{row.preventionRuleKey}</b>
+                  <small>{row.summary}</small>
+                </span>
+                <span className="ax-mono">{(row.procedureCodes ?? []).join(', ') || '—'}</span>
+              </div>
+            ))}
           </div>
         </section>
       ) : null}
@@ -1724,7 +2401,38 @@ function Contracts() {
 }
 
 function Payments() {
+  const queryClient = useQueryClient();
+  const [checkByPayment, setCheckByPayment] = useState<Record<string, any>>({});
+  const [eraNote, setEraNote] = useState('');
+  const [lastEra, setLastEra] = useState<any>(null);
   const payments = useQuery({ queryKey: ['payments'], queryFn: api.payments });
+  const claims = useQuery({ queryKey: ['claims'], queryFn: api.claims });
+  const contractCheck = useMutation({
+    mutationFn: (paymentId: string) => api.contractCheckPayment(paymentId),
+    onSuccess: (data, paymentId) => {
+      setCheckByPayment((current) => ({ ...current, [paymentId]: data }));
+      void queryClient.invalidateQueries({ queryKey: ['payments'] });
+      void queryClient.invalidateQueries({ queryKey: ['work-items'] });
+    },
+  });
+  const postEra = useMutation({
+    mutationFn: (claimId: string) => api.eraDemoPost(claimId, true),
+    onSuccess: (data) => {
+      if (data?.error) {
+        setEraNote(String(data.error));
+        return;
+      }
+      setLastEra(data);
+      setEraNote(
+        `ERA ${data?.remittance?.remittanceNumber ?? ''} posted · ${data?.postedCount ?? 0} payment(s)` +
+          (data?.underpaymentCount ? ` · ${data.underpaymentCount} underpayment work item(s)` : ''),
+      );
+      void queryClient.invalidateQueries({ queryKey: ['payments'] });
+      void queryClient.invalidateQueries({ queryKey: ['claims'] });
+      void queryClient.invalidateQueries({ queryKey: ['work-items'] });
+    },
+    onError: (error) => setEraNote((error as Error).message),
+  });
 
   if (payments.isLoading) return <div className="ax-view"><LoadingState label="Loading payments…" /></div>;
   if (payments.error) return <div className="ax-view"><ErrorState error={payments.error} onRetry={() => void payments.refetch()} /></div>;
@@ -1732,10 +2440,42 @@ function Payments() {
   const remittances = payments.data?.remittances ?? [];
   const paymentRows = payments.data?.payments ?? [];
   const contracts = payments.data?.contracts ?? [];
+  const eraTargets = (claims.data ?? []).filter((c: any) =>
+    ['READY', 'ACCEPTED', 'SUBMITTED', 'PENDING', 'ADJUDICATED'].includes(c.status),
+  );
+  const preferredTarget =
+    eraTargets.find((c: any) => c.id === 'CLM-240816') ??
+    eraTargets.find((c: any) => c.countryId === 'US') ??
+    eraTargets[0];
 
   return (
     <div className="ax-view">
-      <SectionHeading eyebrow="Cash application" title="Payments" detail="Remittances, posted payments and contract references." />
+      <SectionHeading
+        eyebrow="Reimbursement"
+        title="ERA posting & payments"
+        detail="Ingest remittance (835-shaped), auto-post to claims, compare to contract expected, open UNDERPAYMENT_REVIEW when short."
+        action={
+          <button
+            className="ax-primary-button"
+            type="button"
+            disabled={!preferredTarget || postEra.isPending}
+            onClick={() => preferredTarget && postEra.mutate(preferredTarget.id)}
+            data-testid="button-era-demo-post"
+          >
+            {postEra.isPending
+              ? 'Posting ERA…'
+              : preferredTarget
+                ? `Post demo ERA (${preferredTarget.id})`
+                : 'No eligible claim'}
+          </button>
+        }
+      />
+      {eraNote ? (
+        <div className="ax-insight-strip">
+          <Sparkles size={17} />
+          <span>{eraNote}</span>
+        </div>
+      ) : null}
       <div className="ax-metrics">
         <Metric label="Remittances" value={String(remittances.length)} icon={FileText} />
         <Metric label="Payments" value={String(paymentRows.length)} icon={BadgeDollarSign} tone="coral" />
@@ -1745,7 +2485,7 @@ function Payments() {
         <section className="ax-panel">
           <div className="ax-panel-head">
             <div>
-              <span className="ax-kicker">Remittances</span>
+              <span className="ax-kicker">Remittances / ERA</span>
               <h2>{remittances.length} received</h2>
             </div>
           </div>
@@ -1755,12 +2495,30 @@ function Payments() {
                 <span className="ax-rank">RM</span>
                 <span>
                   <b>{remit.remittanceNumber ?? remit.id}</b>
-                  <small>{remit.receivedAt ? new Date(remit.receivedAt).toLocaleString() : '—'}</small>
+                  <small>
+                    {[remit.format, remit.status, remit.checkOrEftNumber].filter(Boolean).join(' · ') ||
+                      (remit.receivedAt ? new Date(remit.receivedAt).toLocaleString() : '—')}
+                  </small>
                 </span>
                 <strong>{money(remit.paidAmount ?? 0)}</strong>
               </div>
             ))}
           </div>
+          {(lastEra?.remittance?.wirePreview ?? remittances[0]?.wirePreview) ? (
+            <pre
+              className="ax-mono"
+              style={{
+                margin: '12px 16px 16px',
+                maxHeight: 140,
+                overflow: 'auto',
+                whiteSpace: 'pre-wrap',
+                fontSize: 11,
+                opacity: 0.85,
+              }}
+            >
+              {lastEra?.remittance?.wirePreview ?? remittances[0]?.wirePreview}
+            </pre>
+          ) : null}
         </section>
         <section className="ax-panel">
           <div className="ax-panel-head">
@@ -1770,20 +2528,39 @@ function Payments() {
             </div>
           </div>
           <div className="ax-claims-table">
-            {paymentRows.map((payment: any) => (
-              <div className="ax-claim-row" key={payment.id} data-testid={`row-payment-${payment.id}`}>
-                <span>
-                  <b>{payment.claimId}</b>
-                  <small>{payment.id}</small>
-                </span>
-                <strong>{money(payment.amount ?? 0)}</strong>
-                <span>
-                  Expected {money(payment.expectedAmount ?? 0)}
-                  <small style={{ display: 'block' }}>Variance {money(payment.variance ?? 0)}</small>
-                </span>
-                <StatusPill tone={statusTone(payment.status)}>{formatLabel(payment.status)}</StatusPill>
-              </div>
-            ))}
+            {paymentRows.map((payment: any) => {
+              const checked = checkByPayment[payment.id];
+              return (
+                <div className="ax-claim-row" key={payment.id} data-testid={`row-payment-${payment.id}`}>
+                  <span>
+                    <b>{payment.claimId}</b>
+                    <small>{payment.id}</small>
+                  </span>
+                  <strong>{money(payment.amount ?? 0)}</strong>
+                  <span>
+                    Expected {money(payment.expectedAmount ?? 0)}
+                    <small style={{ display: 'block' }}>Variance {money(payment.variance ?? 0)}</small>
+                  </span>
+                  <StatusPill tone={statusTone(payment.status)}>{formatLabel(payment.status)}</StatusPill>
+                  <button
+                    className="ax-outline-button"
+                    type="button"
+                    disabled={contractCheck.isPending}
+                    onClick={() => contractCheck.mutate(payment.id)}
+                    data-testid={`button-contract-check-${payment.id}`}
+                  >
+                    {contractCheck.isPending && contractCheck.variables === payment.id ? 'Checking…' : 'Contract check'}
+                  </button>
+                  {checked ? (
+                    <span className="ax-mono" style={{ gridColumn: '1 / -1' }}>
+                      {checked.underpaid ? 'Underpaid' : 'On contract'} · gap{' '}
+                      {money(checked.underpaymentAmount ?? 0)}
+                      {checked.workItem ? ` · work ${checked.workItem.id}` : ''}
+                    </span>
+                  ) : null}
+                </div>
+              );
+            })}
           </div>
         </section>
       </div>
@@ -2034,24 +2811,26 @@ function Workforce() {
 function CountryPacks() {
   const [selected, setSelected] = useState('');
   const packs = useQuery({ queryKey: ['country-packs'], queryFn: api.countryPacks });
+  const adapters = useQuery({ queryKey: ['gateway-adapters'], queryFn: api.gatewayAdapters });
 
   if (packs.isLoading) return <div className="ax-view"><LoadingState label="Loading country packs…" /></div>;
   if (packs.error) return <div className="ax-view"><ErrorState error={packs.error} onRetry={() => void packs.refetch()} /></div>;
 
   const list = packs.data ?? [];
   const pack = list.find((item: any) => item.code === selected) ?? list[0];
+  const adapterMeta = (adapters.data?.adapters ?? []).find((a: any) => a.key === pack?.adapterKey);
 
   return (
     <div className="ax-view">
       <SectionHeading
-        eyebrow="Configurable market architecture"
+        eyebrow="Integration hub"
         title="Country packs"
-        detail="Market layers keep local concepts configurable while your command center stays consistent."
+        detail="Each pack binds a claim standard, coding systems, and a country adapter that translates the canonical claim for clearinghouse submission."
       />
       <div className="ax-pack-disclaimer">
         <Globe2 size={15} />
         <span>
-          These packs are configurable architecture and integration concepts, not claims of legal or regulatory compliance. Availability depends on your operating environment.
+          Adapters produce simulated X12 / NPHIES / DHA payloads today. Wire previews are for architecture validation, not production clearinghouse certification.
         </span>
       </div>
       <div className="ax-packs-layout">
@@ -2068,7 +2847,7 @@ function CountryPacks() {
               <span>
                 <b>{item.name}</b>
                 <small>
-                  {item.claimStandard} · v{item.version}
+                  {item.adapterKey ?? 'generic'} · {item.claimStandard}
                 </small>
               </span>
               <StatusPill tone={item.stage === 'Active' ? 'teal' : 'amber'}>{item.stage}</StatusPill>
@@ -2084,6 +2863,24 @@ function CountryPacks() {
                 <span className="ax-kicker">Selected market layer</span>
                 <h2>{pack.name}</h2>
                 <StatusPill tone={pack.stage === 'Active' ? 'teal' : 'amber'}>{pack.stage} configuration</StatusPill>
+              </div>
+            </div>
+            <div className="ax-detail-list" style={{ marginBottom: 16 }}>
+              <div>
+                <span>Adapter</span>
+                <b>{pack.adapterKey ?? 'generic'}</b>
+              </div>
+              <div>
+                <span>Standard</span>
+                <b>{pack.claimStandard}</b>
+              </div>
+              <div>
+                <span>Clearinghouse</span>
+                <b>{pack.clearinghouse ?? '—'}</b>
+              </div>
+              <div>
+                <span>Adapter label</span>
+                <b>{adapterMeta?.label ?? '—'}</b>
               </div>
             </div>
             <div className="ax-pack-sections">
@@ -2123,7 +2920,11 @@ function Rules() {
 
   return (
     <div className="ax-view">
-      <SectionHeading eyebrow="Policy engine" title="Rules" detail="Versioned payer, country and specialty rules that drive scrub and routing decisions." />
+      <SectionHeading
+        eyebrow="Policy engine"
+        title="Rules"
+        detail="Executable RuleVersions drive claim scrub. Latest effective version per ruleKey is evaluated by layer."
+      />
       <section className="ax-panel ax-table-panel">
         <div className="ax-panel-head">
           <div>
@@ -2134,33 +2935,38 @@ function Rules() {
         <div className="ax-claims-table">
           <div className="ax-table-head">
             <span>Rule</span>
-            <span>Scope</span>
-            <span>Action</span>
+            <span>Layer / scope</span>
+            <span>Predicate</span>
             <span>Severity</span>
-            <span>Effective</span>
+            <span>Source</span>
           </div>
           {list.map((rule: any) => (
             <div className="ax-claim-row" key={rule.id} data-testid={`row-rule-${rule.id}`}>
               <span>
                 <b>{rule.ruleKey}</b>
                 <small>
-                  v{rule.version} · {rule.id}
+                  v{rule.version} · {rule.action}
                 </small>
               </span>
               <span>
-                <b>{rule.country}</b>
+                <b>{rule.layer ?? '—'}</b>
                 <small>
-                  {[rule.payerId, rule.specialty].filter(Boolean).join(' · ') || 'All payers'}
+                  {[rule.country, rule.payerId, rule.specialty].filter(Boolean).join(' · ') || 'All'}
                 </small>
               </span>
               <span>
-                <b>{rule.action}</b>
+                <b>{rule.predicate?.kind ?? '—'}</b>
                 <small>{rule.conditions}</small>
               </span>
               <StatusPill tone={rule.severity === 'BLOCKING' ? 'coral' : rule.severity === 'WARNING' ? 'amber' : 'teal'}>
                 {formatLabel(rule.severity)}
               </StatusPill>
-              <span className="ax-mono">{rule.effectiveFrom?.slice(0, 10)}</span>
+              <span>
+                <StatusPill tone={rule.source === 'DENIAL_FEEDBACK' ? 'coral' : 'blue'}>
+                  {formatLabel(rule.source ?? 'SEED')}
+                </StatusPill>
+                <small style={{ display: 'block' }}>{rule.effectiveFrom?.slice(0, 10)}</small>
+              </span>
             </div>
           ))}
         </div>
@@ -2337,19 +3143,86 @@ export default function WorkspacePage() {
     staySignedIn,
     sessionTimeoutMinutes,
   } = useAuth();
+  const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const [view, setView] = useState<WorkspaceView>('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [tenantOpen, setTenantOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [theme, setTheme] = useState<AppTheme>(() => readStoredTheme());
   const [busy, setBusy] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({ current: '', next: '', confirm: '' });
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState('');
+  const [readNotificationIds, setReadNotificationIds] = useState<string[]>([]);
   const tenantRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
 
   const visibleNav = useMemo(
     () => navItems.filter((item) => canAccess(item.id)),
     [canAccess],
   );
+
+  const workItemsQuery = useQuery({
+    queryKey: ['work-items', 'header-notifications'],
+    queryFn: () => api.workItems(),
+    enabled: Boolean(user),
+  });
+  const recommendationsQuery = useQuery({
+    queryKey: ['recommendations', 'header-notifications'],
+    queryFn: api.recommendations,
+    enabled: Boolean(user),
+  });
+
+  const notifications = useMemo(() => {
+    const items = (workItemsQuery.data ?? [])
+      .filter((item: any) => item.status !== 'COMPLETED' && (item.priority === 'HIGH' || item.status === 'BLOCKED'))
+      .slice(0, 6)
+      .map((item: any) => ({
+        id: `wi-${item.id}`,
+        title: item.title,
+        detail: `${item.id} · ${formatLabel(item.priority)} · ${money(item.valueAtRisk ?? 0)}`,
+        view: 'queue' as WorkspaceView,
+      }));
+    const signal = recommendationsQuery.data?.summary?.[0];
+    if (signal) {
+      items.unshift({
+        id: 'signal-primary',
+        title: 'Velora signal',
+        detail: signal,
+        view: 'leakage' as WorkspaceView,
+      });
+    }
+    return items;
+  }, [workItemsQuery.data, recommendationsQuery.data]);
+
+  const unreadCount = notifications.filter((n) => !readNotificationIds.includes(n.id)).length;
+
+  const changePassword = useMutation({
+    mutationFn: () =>
+      api.changePassword({
+        currentPassword: passwordForm.current,
+        newPassword: passwordForm.next,
+      }),
+    onSuccess: () => {
+      setPasswordSuccess('Password updated successfully.');
+      setPasswordError('');
+      setPasswordForm({ current: '', next: '', confirm: '' });
+    },
+    onError: (error: Error) => {
+      setPasswordError(error.message || 'Unable to change password.');
+      setPasswordSuccess('');
+    },
+  });
+
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
 
   useEffect(() => {
     if (ready && !user) setLocation('/login');
@@ -2364,6 +3237,8 @@ export default function WorkspacePage() {
       const target = event.target as Node;
       if (tenantRef.current && !tenantRef.current.contains(target)) setTenantOpen(false);
       if (userRef.current && !userRef.current.contains(target)) setUserOpen(false);
+      if (profileRef.current && !profileRef.current.contains(target)) setProfileOpen(false);
+      if (notifRef.current && !notifRef.current.contains(target)) setNotifOpen(false);
     };
     document.addEventListener('mousedown', onPointerDown);
     return () => document.removeEventListener('mousedown', onPointerDown);
@@ -2381,6 +3256,21 @@ export default function WorkspacePage() {
   }
 
   if (!user || !tenant) return null;
+
+  const submitPassword = (event: FormEvent) => {
+    event.preventDefault();
+    setPasswordError('');
+    setPasswordSuccess('');
+    if (passwordForm.next.length < 8) {
+      setPasswordError('New password must be at least 8 characters.');
+      return;
+    }
+    if (passwordForm.next !== passwordForm.confirm) {
+      setPasswordError('New password and confirmation do not match.');
+      return;
+    }
+    changePassword.mutate();
+  };
 
   return (
     <main className="axiom-workspace">
@@ -2438,6 +3328,7 @@ export default function WorkspacePage() {
                     setBusy(true);
                     try {
                       await setTenantId(item.id);
+                      await queryClient.invalidateQueries();
                       setTenantOpen(false);
                     } catch {
                       setTenantOpen(false);
@@ -2478,16 +3369,6 @@ export default function WorkspacePage() {
           ))}
         </nav>
         <div className="ax-sidebar-bottom">
-          <div className="ax-signal-mini">
-            <span>
-              <i /> Signal health
-            </span>
-            <strong>Live API · JWT</strong>
-            <small>{tenant.name}</small>
-          </div>
-          <Link href="/" className="ax-back-site" data-testid="link-back-to-site">
-            <ArrowRight size={14} style={{ transform: 'rotate(180deg)' }} /> Back to site
-          </Link>
           <div className={`ax-user-wrap ${userOpen ? 'open' : ''}`} ref={userRef}>
             <button
               type="button"
@@ -2547,21 +3428,204 @@ export default function WorkspacePage() {
             <span className="ax-status-online">
               <i /> Live data
             </span>
-            <button className="ax-icon-button" type="button" aria-label="Notifications" data-testid="button-notifications">
-              <Bell size={17} />
-              <i className="ax-notification-dot" />
-            </button>
-            <span className="ax-topbar-avatar">{user.initials}</span>
+            <div className={`ax-topbar-menu ${notifOpen ? 'open' : ''}`} ref={notifRef}>
+              <button
+                className="ax-icon-button"
+                type="button"
+                aria-label="Notifications"
+                aria-expanded={notifOpen}
+                onClick={() => {
+                  setNotifOpen((open) => !open);
+                  setProfileOpen(false);
+                }}
+                data-testid="button-notifications"
+              >
+                <Bell size={17} />
+                {unreadCount > 0 ? <i className="ax-notification-dot" /> : null}
+              </button>
+              {notifOpen ? (
+                <div className="ax-popover" role="menu" aria-label="Notifications">
+                  <div className="ax-popover-head">
+                    <div>
+                      <b>Notifications</b>
+                      <small>{unreadCount} unread</small>
+                    </div>
+                    <button
+                      type="button"
+                      className="ax-text-button"
+                      onClick={() => setReadNotificationIds(notifications.map((n) => n.id))}
+                      data-testid="button-mark-notifications-read"
+                    >
+                      Mark all read
+                    </button>
+                  </div>
+                  {notifications.length === 0 ? (
+                    <div className="ax-popover-empty">No active alerts.</div>
+                  ) : (
+                    notifications.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        role="menuitem"
+                        className={readNotificationIds.includes(item.id) ? 'read' : ''}
+                        onClick={() => {
+                          setReadNotificationIds((ids) => (ids.includes(item.id) ? ids : [...ids, item.id]));
+                          setView(item.view);
+                          setNotifOpen(false);
+                        }}
+                        data-testid={`button-notification-${item.id}`}
+                      >
+                        <span>
+                          <b>{item.title}</b>
+                          <small>{item.detail}</small>
+                        </span>
+                        {!readNotificationIds.includes(item.id) ? <i className="ax-unread-dot" /> : null}
+                      </button>
+                    ))
+                  )}
+                </div>
+              ) : null}
+            </div>
+            <div className={`ax-topbar-menu ${profileOpen ? 'open' : ''}`} ref={profileRef}>
+              <button
+                type="button"
+                className="ax-topbar-avatar"
+                aria-label="Profile menu"
+                aria-haspopup="menu"
+                aria-expanded={profileOpen}
+                onClick={() => {
+                  setProfileOpen((open) => !open);
+                  setNotifOpen(false);
+                }}
+                data-testid="button-profile-menu"
+              >
+                {user.initials}
+              </button>
+              {profileOpen ? (
+                <div className="ax-popover ax-popover-profile" role="menu" aria-label="Profile">
+                  <div className="ax-popover-static">
+                    <b>{user.name}</b>
+                    <small>
+                      {roleLabel} · {user.email}
+                    </small>
+                  </div>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setView('settings');
+                      setProfileOpen(false);
+                    }}
+                    data-testid="button-profile-settings"
+                  >
+                    <Settings size={14} /> Settings
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setTheme((current) => (current === 'dark' ? 'light' : 'dark'));
+                    }}
+                    data-testid="button-toggle-theme"
+                  >
+                    {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+                    {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setPasswordOpen(true);
+                      setProfileOpen(false);
+                      setPasswordError('');
+                      setPasswordSuccess('');
+                    }}
+                    data-testid="button-change-password"
+                  >
+                    <KeyRound size={14} /> Change password
+                  </button>
+                </div>
+              ) : null}
+            </div>
           </div>
         </header>
         {renderView(view, setView)}
         <footer className="ax-footer">
-          <span>Velora Revenue OS · Revenue, made accountable.</span>
-          <span>
+          <span className="ax-footer-brand">Velora Revenue OS · Revenue, made accountable.</span>
+          <span className="ax-footer-meta">
             {tenant.name} · <b>{roleLabel}</b>
           </span>
         </footer>
       </div>
+
+      {passwordOpen ? (
+        <div className="ax-modal-backdrop" role="presentation" onClick={() => setPasswordOpen(false)}>
+          <div
+            className="ax-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="ax-password-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="ax-modal-head">
+              <div>
+                <span className="ax-kicker">Account security</span>
+                <h2 id="ax-password-title">Change password</h2>
+              </div>
+              <button className="ax-icon-button" type="button" aria-label="Close" onClick={() => setPasswordOpen(false)}>
+                <X size={15} />
+              </button>
+            </div>
+            <form className="ax-modal-form" onSubmit={submitPassword}>
+              <label>
+                Current password
+                <input
+                  type="password"
+                  autoComplete="current-password"
+                  value={passwordForm.current}
+                  onChange={(event) => setPasswordForm((form) => ({ ...form, current: event.target.value }))}
+                  required
+                  data-testid="input-current-password"
+                />
+              </label>
+              <label>
+                New password
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  value={passwordForm.next}
+                  onChange={(event) => setPasswordForm((form) => ({ ...form, next: event.target.value }))}
+                  required
+                  minLength={8}
+                  data-testid="input-new-password"
+                />
+              </label>
+              <label>
+                Confirm new password
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  value={passwordForm.confirm}
+                  onChange={(event) => setPasswordForm((form) => ({ ...form, confirm: event.target.value }))}
+                  required
+                  minLength={8}
+                  data-testid="input-confirm-password"
+                />
+              </label>
+              {passwordError ? <p className="ax-inline-error">{passwordError}</p> : null}
+              {passwordSuccess ? <p className="ax-inline-success">{passwordSuccess}</p> : null}
+              <div className="ax-modal-actions">
+                <button className="ax-outline-button" type="button" onClick={() => setPasswordOpen(false)}>
+                  Cancel
+                </button>
+                <button className="ax-primary-button" type="submit" disabled={changePassword.isPending} data-testid="button-submit-password">
+                  {changePassword.isPending ? 'Saving…' : 'Update password'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
