@@ -1,0 +1,21 @@
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  font: 700 15px var(--app-font-serif);
+  letter-spacing: -0.03em;
+}
+
+.brand-mark {
+  width: 29px;
+  height: 29px;
+  display: grid;
+  place-items: center;
+  color: hsl(var(--primary));
+  background: hsl(var(--accent));
+  border-radius: 8px 8px 8px 2px;
+}
+
+.brand-mark svg {
+  width: 18px;
+}
