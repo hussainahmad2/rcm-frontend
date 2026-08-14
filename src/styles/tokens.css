@@ -1,0 +1,86 @@
+﻿@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-card-border: hsl(var(--card-border));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-popover-border: hsl(var(--popover-border));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --font-sans: var(--app-font-sans);
+  --font-serif: var(--app-font-serif);
+  --font-mono: var(--app-font-mono);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --background: 42 43% 96%;
+  --foreground: 205 44% 15%;
+  --border: 203 22% 83%;
+  --input: 203 22% 83%;
+  --ring: 168 42% 42%;
+  --card: 42 43% 98%;
+  --card-foreground: 205 44% 15%;
+  --card-border: 203 22% 83%;
+  --popover: 42 43% 98%;
+  --popover-foreground: 205 44% 15%;
+  --popover-border: 203 22% 83%;
+  --primary: 205 44% 15%;
+  --primary-foreground: 42 43% 96%;
+  --secondary: 168 42% 42%;
+  --secondary-foreground: 42 43% 96%;
+  --muted: 203 20% 91%;
+  --muted-foreground: 205 18% 42%;
+  --accent: 11 80% 62%;
+  --accent-foreground: 205 44% 15%;
+  --destructive: 4 70% 52%;
+  --destructive-foreground: 42 43% 96%;
+  --chart-1: 168 42% 42%;
+  --chart-2: 11 80% 62%;
+  --chart-3: 205 44% 15%;
+  --chart-4: 42 72% 61%;
+  --chart-5: 202 55% 55%;
+  --sidebar: 205 44% 15%;
+  --sidebar-foreground: 42 43% 96%;
+  --sidebar-border: 205 29% 27%;
+  --sidebar-primary: 11 80% 62%;
+  --sidebar-primary-foreground: 205 44% 15%;
+  --sidebar-accent: 168 42% 42%;
+  --sidebar-accent-foreground: 42 43% 96%;
+  --sidebar-ring: 168 42% 42%;
+  --app-font-sans: 'DM Sans', sans-serif;
+  --app-font-serif: 'Bricolage Grotesque', sans-serif;
+  --app-font-mono: 'Space Mono', monospace;
+  --radius: 0.85rem;
+  --shadow-sm: 0 2px 10px rgba(21, 51, 68, .05);
+  --shadow-md: 0 18px 45px rgba(21, 51, 68, .12);
+  --shadow-lg: 0 26px 72px rgba(21, 51, 68, .16);
+  --shadow-xl: 0 40px 100px rgba(21, 51, 68, .2);
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
+  --button-outline: rgba(21, 51, 68, .12);
+  --badge-outline: rgba(21, 51, 68, .08);
+  --elevate-1: rgba(21, 51, 68, .04);
+  --elevate-2: rgba(21, 51, 68, .08);
+}
+
