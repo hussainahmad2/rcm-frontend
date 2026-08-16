@@ -71,7 +71,7 @@ export default function ForgotPasswordPage() {
       )}
 
       <div className="vl-auth-footer">
-        <Link href="/contact-admin" data-testid="link-forgot-contact">
+        <Link href="/contact-admin" className="vl-auth-action" data-testid="link-forgot-contact">
           Need help? Contact admin
         </Link>
       </div>

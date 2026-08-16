@@ -97,10 +97,10 @@ export default function ContactAdminPage() {
       )}
 
       <div className="vl-auth-footer">
-        <Link href="/forgot-password" data-testid="link-contact-forgot">
+        <Link href="/forgot-password" className="vl-auth-action" data-testid="link-contact-forgot">
           Forgot password
         </Link>
-        <Link href="/signup" data-testid="link-contact-signup">
+        <Link href="/signup" className="vl-auth-action" data-testid="link-contact-signup">
           Request access
         </Link>
       </div>

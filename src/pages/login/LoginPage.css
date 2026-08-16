@@ -146,8 +146,8 @@
 .vl-login-card select,
 .vl-login-card textarea {
   width: 100%;
-  border: 1px solid hsl(205 16% 82%);
-  background: #fff;
+  border: 1px solid hsl(205 22% 84%);
+  background: hsl(205 45% 97%);
   border-radius: 10px;
   padding: 11px 12px;
   font: 500 14px var(--app-font-sans);
@@ -170,13 +170,14 @@
 }
 
 .vl-label-row a {
-  font-weight: 500;
-  font-size: 12px;
-  color: hsl(var(--primary));
+  font-weight: 650;
+  font-size: 12.5px;
+  color: hsl(187 55% 32%);
   text-decoration: none;
 }
 
 .vl-label-row a:hover {
+  color: hsl(205 36% 14%);
   text-decoration: underline;
 }
 
@@ -185,29 +186,56 @@
 }
 
 .vl-login-topnav a,
-.vl-auth-links a,
-.vl-auth-footer a {
+.vl-auth-links a {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   color: hsl(205 22% 34%);
   font-size: 12.5px;
+  font-weight: 600;
   text-decoration: none;
 }
 
 .vl-login-topnav a:hover,
-.vl-auth-links a:hover,
-.vl-auth-footer a:hover {
-  color: hsl(var(--primary));
+.vl-auth-links a:hover {
+  color: hsl(205 36% 14%);
 }
 
 .vl-auth-footer {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 16px;
-  align-items: center;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.vl-auth-footer > span {
+  grid-column: 1 / -1;
   font-size: 12.5px;
-  color: hsl(205 12% 42%);
+  color: hsl(205 14% 40%);
+}
+
+.vl-auth-footer a,
+.vl-auth-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 42px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid hsl(205 18% 78%);
+  background: #fff;
+  color: hsl(205 28% 16%);
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none;
+  box-shadow: 0 1px 0 rgba(15, 23, 32, 0.04);
+}
+
+.vl-auth-footer a:hover,
+.vl-auth-action:hover {
+  border-color: hsl(205 32% 28%);
+  background: hsl(205 40% 97%);
+  color: hsl(205 36% 12%);
 }
 
 .vl-auth-links {
@@ -280,7 +308,8 @@
   border: 1px solid hsl(8 55% 86%);
 }
 
-.vl-login-submit {
+.vl-login-submit,
+.vl-submit {
   margin-top: 4px;
   display: inline-flex;
   align-items: center;
@@ -289,16 +318,25 @@
   width: 100%;
   border: 0;
   border-radius: 10px;
-  padding: 12px 14px;
-  background: hsl(var(--primary));
-  color: hsl(var(--background));
-  font: 650 14px var(--app-font-sans);
+  padding: 13px 14px;
+  background: hsl(205 36% 12%);
+  color: #fff;
+  font: 700 14.5px var(--app-font-sans);
+  letter-spacing: -0.01em;
   cursor: pointer;
+  box-shadow: 0 10px 22px rgba(8, 16, 24, 0.22);
 }
 
-.vl-login-submit:disabled {
+.vl-login-submit:hover:not(:disabled),
+.vl-submit:hover:not(:disabled) {
+  background: hsl(205 38% 16%);
+}
+
+.vl-login-submit:disabled,
+.vl-submit:disabled {
   opacity: 0.7;
   cursor: wait;
+  box-shadow: none;
 }
 
 .vl-login-demo {
@@ -328,18 +366,27 @@
 }
 
 .vl-login-demo button {
-  border: 1px solid hsl(205 16% 82%);
+  border: 1px solid hsl(205 16% 78%);
   background: #fff;
   border-radius: 999px;
-  padding: 6px 10px;
-  font-size: 11.5px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
-  color: hsl(205 20% 28%);
+  color: hsl(205 24% 22%);
 }
 
 .vl-login-demo button:hover {
-  border-color: hsl(var(--secondary));
-  color: hsl(var(--primary));
+  border-color: hsl(205 32% 28%);
+  background: hsl(205 40% 97%);
+  color: hsl(205 36% 12%);
+}
+
+.vl-login-enterprise-note {
+  margin-top: 18px;
+  color: hsl(var(--muted-foreground));
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .vl-spin {
@@ -365,5 +412,9 @@
 
   .vl-login-card {
     padding: 26px 22px 28px;
+  }
+
+  .vl-auth-footer {
+    grid-template-columns: 1fr;
   }
 }

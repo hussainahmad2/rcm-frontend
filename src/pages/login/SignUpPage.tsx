@@ -98,7 +98,7 @@ export default function SignUpPage() {
 
       <div className="vl-auth-footer">
         <span>Already provisioned?</span>
-        <Link href="/login" data-testid="link-signup-login">
+        <Link href="/login" className="vl-auth-action" data-testid="link-signup-login">
           Sign in
         </Link>
       </div>

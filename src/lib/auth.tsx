@@ -21,19 +21,19 @@ export type RoleId = AuthUser['role'];
 
 const ROLE_VIEWS: Record<RoleId, WorkspaceView[]> = {
   admin: [
-    'overview', 'queue', 'patients', 'providers', 'payers', 'eligibility', 'authorizations',
+    'overview', 'queue', 'registration', 'patients', 'providers', 'payers', 'eligibility', 'authorizations',
     'coding', 'charges', 'claims', 'denials', 'ar', 'payments', 'contracts', 'leakage',
     'ai', 'packs', 'rules', 'settings',
   ],
   operator: [
-    'overview', 'queue', 'patients', 'providers', 'payers', 'eligibility', 'authorizations',
-    'claims', 'denials', 'ar', 'payments', 'leakage', 'ai', 'settings',
+    'overview', 'queue', 'registration', 'patients', 'providers', 'payers', 'eligibility', 'authorizations',
+    'coding', 'charges', 'claims', 'denials', 'ar', 'payments', 'leakage', 'ai', 'settings',
   ],
   coder: [
-    'overview', 'queue', 'patients', 'providers', 'coding', 'charges', 'claims', 'authorizations', 'ai',
+    'overview', 'queue', 'registration', 'patients', 'providers', 'coding', 'charges', 'claims', 'authorizations', 'ai',
   ],
   biller: [
-    'overview', 'queue', 'patients', 'payers', 'charges', 'claims', 'denials', 'ar', 'payments', 'contracts', 'leakage',
+    'overview', 'queue', 'registration', 'patients', 'payers', 'eligibility', 'charges', 'claims', 'denials', 'ar', 'payments', 'contracts', 'leakage',
   ],
   viewer: [
     'overview', 'patients', 'providers', 'payers', 'claims', 'denials', 'ar', 'payments', 'leakage', 'packs',
@@ -59,7 +59,15 @@ type AuthContextValue = {
   inactivityWarning: boolean;
   secondsToTimeout: number | null;
   canAccess: (view: WorkspaceView) => boolean;
-  login: (email: string, password: string, tenantId?: string) => Promise<void>;
+  login: (email: string, password: string, tenantId?: string) => Promise<'ok' | 'mfa' | 'mfa-enroll'>;
+  completeMfa: (code: string) => Promise<void>;
+  completeMfaEnroll: (code: string) => Promise<void>;
+  beginForcedMfaEnroll: () => Promise<{ secret: string; otpauthUrl: string; recoveryCodes: string[] }>;
+  refreshProfile: () => Promise<void>;
+  mfaPending: { mfaToken: string; email: string } | null;
+  mfaEnrollPending: { enrollToken: string; email: string } | null;
+  seedMfaChallenge: (mfaToken: string, email?: string) => void;
+  seedMfaEnroll: (enrollToken: string, email?: string) => void;
   logout: () => Promise<void>;
   setTenantId: (tenantId: string) => Promise<void>;
   staySignedIn: () => Promise<void>;
@@ -75,6 +83,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [sessionTimeoutMinutes, setSessionTimeoutMinutes] = useState(15);
   const [lastActivityAt, setLastActivityAt] = useState(() => Date.now());
   const [now, setNow] = useState(() => Date.now());
+  const [mfaPending, setMfaPending] = useState<{ mfaToken: string; email: string } | null>(null);
+  const [mfaEnrollPending, setMfaEnrollPending] = useState<{ enrollToken: string; email: string } | null>(null);
   const touchInFlight = useRef(false);
 
   const applySession = useCallback((payload: {
@@ -200,7 +210,65 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       canAccess: (view) => Boolean(user && ROLE_VIEWS[user.role].includes(view)),
       login: async (email, password, tenantId) => {
         const payload = await api.login({ email, password, tenantId });
+        if ('mfaRequired' in payload && payload.mfaRequired) {
+          setMfaPending({ mfaToken: payload.mfaToken, email: payload.user.email });
+          setMfaEnrollPending(null);
+          return 'mfa';
+        }
+        if ('mfaEnrollmentRequired' in payload && payload.mfaEnrollmentRequired) {
+          setMfaEnrollPending({ enrollToken: payload.enrollToken, email: payload.user.email });
+          setMfaPending(null);
+          return 'mfa-enroll';
+        }
+        setMfaPending(null);
+        setMfaEnrollPending(null);
+        applySession(payload as {
+          accessToken: string;
+          accessExpiresIn: number;
+          user: AuthUser;
+          tenant: AuthTenant;
+          sessionTimeoutMinutes?: number;
+        });
+        return 'ok';
+      },
+      completeMfa: async (code) => {
+        if (!mfaPending) throw new Error('No MFA challenge pending');
+        const payload = await api.verifyMfa({ mfaToken: mfaPending.mfaToken, code });
+        setMfaPending(null);
         applySession(payload);
+      },
+      beginForcedMfaEnroll: async () => {
+        if (!mfaEnrollPending) throw new Error('No MFA enrollment pending');
+        const data = await api.beginMfaBootstrap(mfaEnrollPending.enrollToken);
+        return {
+          secret: data.secret,
+          otpauthUrl: data.otpauthUrl,
+          recoveryCodes: data.recoveryCodes,
+        };
+      },
+      completeMfaEnroll: async (code) => {
+        if (!mfaEnrollPending) throw new Error('No MFA enrollment pending');
+        const payload = await api.confirmMfaBootstrap({
+          enrollToken: mfaEnrollPending.enrollToken,
+          code,
+        });
+        setMfaEnrollPending(null);
+        applySession(payload);
+      },
+      refreshProfile: async () => {
+        const me = await api.me();
+        setUser(me.user);
+        setTenant(me.tenant);
+      },
+      mfaPending,
+      mfaEnrollPending,
+      seedMfaChallenge: (mfaToken, email) => {
+        setMfaPending({ mfaToken, email: email ?? 'sso-user' });
+        setMfaEnrollPending(null);
+      },
+      seedMfaEnroll: (enrollToken, email) => {
+        setMfaEnrollPending({ enrollToken, email: email ?? 'sso-user' });
+        setMfaPending(null);
       },
       logout,
       setTenantId: async (tenantId) => {
@@ -216,6 +284,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     inactivityWarning,
     logout,
     markActivity,
+    mfaPending,
+    mfaEnrollPending,
     ready,
     secondsToTimeout,
     sessionTimeoutMinutes,

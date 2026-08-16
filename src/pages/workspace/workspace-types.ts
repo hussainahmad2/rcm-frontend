@@ -1,6 +1,7 @@
 export type WorkspaceView =
   | 'overview'
   | 'queue'
+  | 'registration'
   | 'patients'
   | 'providers'
   | 'payers'

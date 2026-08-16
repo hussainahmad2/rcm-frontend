@@ -3,7 +3,7 @@ import { Route, Switch, Router as WouterRouter, useLocation } from 'wouter';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { AuthProvider } from '@/lib/auth';
+import { AuthProvider, useAuth } from '@/lib/auth';
 import HomePage from '@/pages/home/HomePage';
 import DemoPage from '@/pages/demo/DemoPage';
 import LoginPage from '@/pages/login/LoginPage';
@@ -14,11 +14,24 @@ import WorkspacePage from '@/pages/workspace/WorkspacePage';
 import NotFoundPage from '@/pages/not-found/NotFoundPage';
 import './App.css';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 15_000,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function RoutedErrorBoundary({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   return <ErrorBoundary resetKey={location}>{children}</ErrorBoundary>;
+}
+
+/** Remount workspace when tenant changes so UI state + queries cannot leak across workspaces. */
+function WorkspaceRoute() {
+  const { tenant } = useAuth();
+  return <WorkspacePage key={tenant?.id ?? 'no-tenant'} />;
 }
 
 function Router() {
@@ -31,7 +44,7 @@ function Router() {
         <Route path="/forgot-password" component={ForgotPasswordPage} />
         <Route path="/signup" component={SignUpPage} />
         <Route path="/contact-admin" component={ContactAdminPage} />
-        <Route path="/workspace" component={WorkspacePage} />
+        <Route path="/workspace" component={WorkspaceRoute} />
         <Route component={NotFoundPage} />
       </Switch>
     </RoutedErrorBoundary>
@@ -54,3 +67,4 @@ function App() {
 }
 
 export default App;
+export { queryClient };
