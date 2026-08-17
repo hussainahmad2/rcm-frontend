@@ -1,0 +1,62 @@
+import { useEffect, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { api } from './api';
+import { toast } from '@/hooks/use-toast';
+
+export type AiCopilotSuggestion = {
+  id: string;
+  headline: string;
+  summary: string;
+  nextAction: string;
+  riskLevel: 'low' | 'medium' | 'high';
+  recommendations?: string[];
+  useCase: string;
+  offline: boolean;
+};
+
+export function useAiCopilot(enabled: boolean) {
+  const seen = useRef(new Set<string>());
+  const primed = useRef(false);
+
+  const query = useQuery({
+    queryKey: ['ai-copilot'],
+    queryFn: () =>
+      api.aiCopilot() as Promise<{
+        ok: boolean;
+        model?: string;
+        message?: string;
+        suggestions: AiCopilotSuggestion[];
+      }>,
+    enabled,
+    refetchInterval: 20_000,
+    staleTime: 8_000,
+    retry: 1,
+  });
+
+  useEffect(() => {
+    const suggestions = query.data?.suggestions ?? [];
+    if (!suggestions.length) return;
+
+    if (!primed.current) {
+      primed.current = true;
+      for (const item of suggestions) seen.current.add(item.id);
+      const first = suggestions[0];
+      toast({
+        title: first.headline,
+        description: first.nextAction || first.summary,
+      });
+      return;
+    }
+
+    for (const item of suggestions) {
+      if (seen.current.has(item.id)) continue;
+      seen.current.add(item.id);
+      toast({
+        title: item.headline,
+        description: item.nextAction || item.summary,
+      });
+    }
+  }, [query.data]);
+
+  return query;
+}
