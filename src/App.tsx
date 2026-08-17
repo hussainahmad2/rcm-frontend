@@ -17,8 +17,14 @@ import './App.css';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 15_000,
+      staleTime: 10_000,
       refetchOnWindowFocus: false,
+      refetchOnReconnect: true,
+      retry: 2,
+      retryDelay: (attempt) => Math.min(500 * 2 ** attempt, 4_000),
+    },
+    mutations: {
+      retry: 0,
     },
   },
 });
