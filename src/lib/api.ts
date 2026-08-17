@@ -15,9 +15,14 @@ export class ApiError extends Error {
   }
 }
 
-type RequestOptions = RequestInit & { auth?: boolean; retry?: boolean };
+type RequestOptions = RequestInit & { auth?: boolean; retry?: boolean; timeoutMs?: number };
 
 let refreshPromise: Promise<boolean> | null = null;
+const DEFAULT_TIMEOUT_MS = 25_000;
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 async function refreshAccessToken(): Promise<boolean> {
   if (refreshPromise) return refreshPromise;
@@ -50,7 +55,7 @@ async function refreshAccessToken(): Promise<boolean> {
 }
 
 export async function request<T>(path: string, init: RequestOptions = {}): Promise<T> {
-  const { auth = true, retry = true, headers, ...rest } = init;
+  const { auth = true, retry = true, timeoutMs = DEFAULT_TIMEOUT_MS, headers, ...rest } = init;
   const nextHeaders = new Headers(headers);
   if (!nextHeaders.has('Content-Type') && rest.body) {
     nextHeaders.set('Content-Type', 'application/json');
@@ -65,17 +70,44 @@ export async function request<T>(path: string, init: RequestOptions = {}): Promi
     if (token) nextHeaders.set('Authorization', `Bearer ${token}`);
   }
 
-  const response = await fetch(`${API_BASE}${path}`, {
-    ...rest,
-    headers: nextHeaders,
-    credentials: 'include',
-  });
+  const method = String(rest.method ?? 'GET').toUpperCase();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  if (rest.signal) {
+    const incoming = rest.signal;
+    if (incoming.aborted) controller.abort();
+    else incoming.addEventListener('abort', () => controller.abort(), { once: true });
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      ...rest,
+      signal: controller.signal,
+      headers: nextHeaders,
+      credentials: 'include',
+    });
+  } catch (error) {
+    clearTimeout(timer);
+    const retryable = retry && method === 'GET';
+    if (retryable) {
+      await sleep(400);
+      return request<T>(path, { ...init, retry: false });
+    }
+    throw new ApiError(0, error instanceof Error && error.name === 'AbortError' ? 'Request timed out' : 'Network error');
+  }
+  clearTimeout(timer);
 
   if (response.status === 401 && auth && retry) {
     const ok = await refreshAccessToken();
     if (ok) return request<T>(path, { ...init, retry: false });
     clearAccessToken();
     throw new ApiError(401, 'Unauthorized');
+  }
+
+  if (!response.ok && retry && method === 'GET' && (response.status === 502 || response.status === 503 || response.status === 504)) {
+    await sleep(500);
+    return request<T>(path, { ...init, retry: false });
   }
 
   if (!response.ok) {
@@ -92,7 +124,7 @@ export type AuthUser = {
   email: string;
   name: string;
   initials: string;
-  role: 'admin' | 'operator' | 'coder' | 'biller' | 'viewer';
+  role: 'superadmin' | 'admin' | 'operator' | 'coder' | 'biller' | 'viewer';
   title: string;
   tenantId: string;
   mustChangePassword?: boolean;
@@ -319,12 +351,26 @@ export const api = {
     role: AuthUser['role'];
     title?: string;
     tenantId?: string;
+    password?: string;
     temporaryPassword?: string;
   }) =>
-    request<{ user: AuthUser; temporaryPassword: string }>('/auth/users', {
+    request<{ user: AuthUser; temporaryPassword?: string }>('/auth/users', {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+  updateUser: (id: string, body: {
+    email?: string;
+    name?: string;
+    role?: AuthUser['role'];
+    title?: string;
+    password?: string;
+  }) =>
+    request<{ user: AuthUser }>(`/auth/users/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+  deleteUser: (id: string) =>
+    request<{ ok: boolean }>(`/auth/users/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   readiness: () => request<any>('/readyz', { auth: false }),
   onboarding: () => request<any>('/ops/onboarding'),
   baaTemplate: () => request<any>('/ops/baa'),
@@ -355,6 +401,9 @@ export const api = {
     }),
   tenant: () => request<any>('/tenant'),
   commandCenter: () => request<any>('/dashboard/command-center'),
+  todayBoard: (date?: string) =>
+    request<any>(date ? `/dashboard/today?date=${encodeURIComponent(date)}` : '/dashboard/today'),
+  roleHome: () => request<any>('/dashboard/home'),
   revenueMap: () => request<any>('/dashboard/revenue-map'),
   sla: () => request<any>('/dashboard/sla'),
   workItems: (params?: Record<string, string>) => {
@@ -387,10 +436,13 @@ export const api = {
   appealDraft: (id: string) => request<any>(`/denials/${id}/appeal-draft`, { method: 'POST', body: '{}' }),
   leakage: () => request<any>('/intelligence/leakage'),
   recommendations: () => request<any>('/intelligence/recommendations'),
+  refreshSignals: () =>
+    request<any>('/intelligence/refresh', { method: 'POST', body: '{}', timeoutMs: 12_000 }),
   agents: () => request<any[]>('/ai/agents'),
-  aiHealth: () => request<any>('/ai/health'),
+  aiHealth: () => request<any>('/ai/health', { timeoutMs: 8_000 }),
+  aiCopilot: () => request<any>('/ai/copilot', { timeoutMs: 8_000 }),
   runAgent: (agentId: string, body?: Record<string, string>) =>
-    request(`/ai/agents/${agentId}/run`, { method: 'POST', body: JSON.stringify(body ?? {}) }),
+    request<any>(`/ai/agents/${agentId}/run`, { method: 'POST', body: JSON.stringify(body ?? {}), timeoutMs: 12_000 }),
   decideAiExecution: (executionId: string, body: { decision: 'ACCEPT' | 'MODIFY' | 'REJECT'; reason?: string }) =>
     request<any>(`/ai/executions/${executionId}/decide`, { method: 'POST', body: JSON.stringify(body) }),
   countryPacks: () => request<any[]>('/country-packs'),
@@ -401,6 +453,8 @@ export const api = {
       body: JSON.stringify({ action }),
     }),
   patients: () => request<any[]>('/patients'),
+  searchPatients: (body: Record<string, string>) =>
+    request<any>('/patients/search', { method: 'POST', body: JSON.stringify(body) }),
   patient: (id: string) => request<any>(`/patients/${id}`),
   createPatient: (body: Record<string, unknown>) =>
     request<any>('/patients', { method: 'POST', body: JSON.stringify(body) }),
@@ -438,13 +492,49 @@ export const api = {
   denyAuthorization: (id: string, body?: Record<string, unknown>) =>
     request<any>(`/authorizations/${id}/deny`, { method: 'POST', body: JSON.stringify(body ?? {}) }),
   facilities: () => request<any[]>('/facilities'),
+  organizations: () => request<any[]>('/organizations'),
+  createOrganization: (body: { name: string; type?: string }) =>
+    request<any>('/organizations', { method: 'POST', body: JSON.stringify(body) }),
+  createFacility: (body: { name: string; organizationId: string; country?: string }) =>
+    request<any>('/facilities', { method: 'POST', body: JSON.stringify(body) }),
+  updateOrganization: (id: string, body: { name?: string; type?: string }) =>
+    request<any>(`/organizations/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  deleteOrganization: (id: string) =>
+    request<any>(`/organizations/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  updateFacility: (id: string, body: { name?: string; organizationId?: string; country?: string }) =>
+    request<any>(`/facilities/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  deleteFacility: (id: string) =>
+    request<any>(`/facilities/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   charges: () => request<any[]>('/charges'),
   createCharge: (body: Record<string, unknown>) =>
     request<any>('/charges', { method: 'POST', body: JSON.stringify(body) }),
   billCharge: (id: string) => request<any>(`/charges/${id}/bill`, { method: 'POST', body: '{}' }),
   encounters: () => request<any[]>('/encounters'),
+  clinicalEncounters: () => request<any[]>('/clinical/encounters'),
   createEncounter: (body: Record<string, unknown>) =>
     request<any>('/encounters', { method: 'POST', body: JSON.stringify(body) }),
+  completeDocumentation: (id: string, body?: Record<string, unknown>) =>
+    request<any>(`/encounters/${id}/complete-documentation`, { method: 'POST', body: JSON.stringify(body ?? {}) }),
+  appointmentTypes: () => request<any[]>('/appointment-types'),
+  providerSchedules: (providerId?: string) =>
+    request<any[]>(providerId ? `/provider-schedules?providerId=${encodeURIComponent(providerId)}` : '/provider-schedules'),
+  appointments: (params?: Record<string, string>) => {
+    const qs = params ? `?${new URLSearchParams(params)}` : '';
+    return request<any[]>(`/appointments${qs}`);
+  },
+  appointment: (id: string) => request<any>(`/appointments/${id}`),
+  scheduleAvailability: (body: { providerId: string; date: string; appointmentTypeId?: string; durationMinutes?: number }) =>
+    request<any>('/schedule/availability', { method: 'POST', body: JSON.stringify(body) }),
+  createAppointment: (body: Record<string, unknown>) =>
+    request<any>('/appointments', { method: 'POST', body: JSON.stringify(body) }),
+  transitionAppointment: (id: string, status: string, reason?: string) =>
+    request<any>(`/appointments/${id}/transition`, { method: 'POST', body: JSON.stringify({ status, reason }) }),
+  checkInAppointment: (id: string) =>
+    request<any>(`/appointments/${id}/check-in`, { method: 'POST', body: '{}' }),
+  feeSchedules: () => request<any[]>('/fee-schedules'),
+  integrationMessages: () => request<any[]>('/integration-messages'),
+  manualVerifyCoverage: (id: string, body: Record<string, unknown>) =>
+    request<any>(`/coverages/${id}/manual-verify`, { method: 'POST', body: JSON.stringify(body) }),
   reconcileEncounter: (id: string) =>
     request<any>(`/encounters/${id}/reconcile`, { method: 'POST', body: '{}' }),
   assembleClaim: (id: string) =>
@@ -472,6 +562,25 @@ export const api = {
     codes?: string[];
     reason?: string;
   }) => request<any>('/coding/decision', { method: 'POST', body: JSON.stringify(body) }),
+  captureCharges: (encounterId: string) =>
+    request<any>(`/encounters/${encounterId}/capture-charges`, { method: 'POST', body: '{}' }),
+  inquireClaimStatus: (id: string) =>
+    request<any>(`/claims/${id}/status-inquiry`, { method: 'POST', body: '{}' }),
+  adjudicateClaim: (id: string) =>
+    request<any>(`/claims/${id}/adjudicate`, { method: 'POST', body: '{}' }),
+  transitionDenial: (id: string, status: string, note?: string) =>
+    request<any>(`/denials/${id}/transition`, { method: 'POST', body: JSON.stringify({ status, note }) }),
+  followUps: (entityId?: string) =>
+    request<any[]>(entityId ? `/follow-ups?entityId=${encodeURIComponent(entityId)}` : '/follow-ups'),
+  addFollowUp: (body: Record<string, unknown>) =>
+    request<any>('/follow-ups', { method: 'POST', body: JSON.stringify(body) }),
+  patientBilling: () => request<any[]>('/patient-billing'),
+  upsertProviderSchedule: (body: Record<string, unknown>) =>
+    request<any>('/provider-schedules', { method: 'POST', body: JSON.stringify(body) }),
+  addProviderTimeOff: (body: Record<string, unknown>) =>
+    request<any>('/provider-time-off', { method: 'POST', body: JSON.stringify(body) }),
+  retryIntegrationMessage: (id: string) =>
+    request<any>(`/integration-messages/${id}/retry`, { method: 'POST', body: '{}' }),
   arQueue: () => request<any[]>('/ar/queue'),
   payments: () => request<any>('/payments'),
   refundPayment: (id: string, amount?: number) =>
