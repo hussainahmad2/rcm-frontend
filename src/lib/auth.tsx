@@ -19,28 +19,36 @@ import type { WorkspaceView } from '@/pages/workspace/workspace-types';
 
 export type RoleId = AuthUser['role'];
 
+export function isAdminRole(role?: string | null): boolean {
+  return role === 'admin' || role === 'superadmin';
+}
+
+const ADMIN_VIEWS: WorkspaceView[] = [
+  'overview', 'queue', 'registration', 'patients', 'schedule', 'providers', 'payers', 'eligibility', 'authorizations',
+  'encounters', 'coding', 'charges', 'claims', 'denials', 'ar', 'payments', 'contracts', 'leakage',
+  'ai', 'packs', 'rules', 'settings',
+];
+
 const ROLE_VIEWS: Record<RoleId, WorkspaceView[]> = {
-  admin: [
-    'overview', 'queue', 'registration', 'patients', 'providers', 'payers', 'eligibility', 'authorizations',
-    'coding', 'charges', 'claims', 'denials', 'ar', 'payments', 'contracts', 'leakage',
-    'ai', 'packs', 'rules', 'settings',
-  ],
+  superadmin: ADMIN_VIEWS,
+  admin: ADMIN_VIEWS,
   operator: [
-    'overview', 'queue', 'registration', 'patients', 'providers', 'payers', 'eligibility', 'authorizations',
-    'coding', 'charges', 'claims', 'denials', 'ar', 'payments', 'leakage', 'ai', 'settings',
+    'overview', 'queue', 'registration', 'patients', 'schedule', 'providers', 'payers', 'eligibility', 'authorizations',
+    'encounters', 'coding', 'charges', 'claims', 'denials', 'ar', 'payments', 'leakage', 'ai', 'settings',
   ],
   coder: [
-    'overview', 'queue', 'registration', 'patients', 'providers', 'coding', 'charges', 'claims', 'authorizations', 'ai',
+    'overview', 'queue', 'registration', 'patients', 'schedule', 'providers', 'encounters', 'coding', 'charges', 'claims', 'authorizations', 'ai',
   ],
   biller: [
-    'overview', 'queue', 'registration', 'patients', 'payers', 'eligibility', 'charges', 'claims', 'denials', 'ar', 'payments', 'contracts', 'leakage',
+    'overview', 'queue', 'registration', 'patients', 'schedule', 'payers', 'eligibility', 'encounters', 'charges', 'claims', 'denials', 'ar', 'payments', 'contracts', 'leakage',
   ],
   viewer: [
-    'overview', 'patients', 'providers', 'payers', 'claims', 'denials', 'ar', 'payments', 'leakage', 'packs',
+    'overview', 'patients', 'schedule', 'providers', 'payers', 'encounters', 'claims', 'denials', 'ar', 'payments', 'leakage', 'packs',
   ],
 };
 
 const ROLE_LABELS: Record<RoleId, string> = {
+  superadmin: 'Super administrator',
   admin: 'Administrator',
   operator: 'Operator',
   coder: 'Coder',

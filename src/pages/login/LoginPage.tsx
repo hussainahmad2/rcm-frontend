@@ -13,14 +13,6 @@ import { useAuth } from '@/lib/auth';
 import { AuthShell } from './AuthShell';
 import './LoginPage.css';
 
-const DEMO_ACCOUNTS = [
-  { email: 'ava.lang@meridian.care', role: 'Administrator' },
-  { email: 'omar.reyes@meridian.care', role: 'Operator' },
-  { email: 'casey.nguyen@meridian.care', role: 'Coder' },
-  { email: 'blake.ortiz@meridian.care', role: 'Biller' },
-  { email: 'vera.quinn@meridian.care', role: 'Viewer' },
-];
-
 function formatAuthError(err: unknown) {
   const raw = err instanceof Error ? err.message : 'Sign-in failed';
   try {
@@ -53,7 +45,6 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [demoMode, setDemoMode] = useState(true);
   const [ssoProviders, setSsoProviders] = useState<Array<{ id: string; label: string }>>([]);
   const [enrollSecret, setEnrollSecret] = useState<{
     secret: string;
@@ -79,10 +70,9 @@ export default function LoginPage() {
     void api
       .sessionPolicy()
       .then((policy) => {
-        setDemoMode(policy.demoMode !== false && policy.enterpriseMode !== true);
         setSsoProviders((policy as { ssoProviders?: Array<{ id: string; label: string }> }).ssoProviders ?? []);
       })
-      .catch(() => setDemoMode(true));
+      .catch(() => setSsoProviders([]));
   }, []);
 
   useEffect(() => {
@@ -272,33 +262,6 @@ export default function LoginPage() {
             Contact admin
           </Link>
         </div>
-      ) : null}
-
-      {!challengeMode && demoMode ? (
-        <div className="vl-login-demo">
-          <span>
-            Demo accounts · password <code>Velora!2026</code>
-          </span>
-          <div>
-            {DEMO_ACCOUNTS.map((account) => (
-              <button
-                key={account.email}
-                type="button"
-                onClick={() => {
-                  setEmail(account.email);
-                  setPassword('Velora!2026');
-                }}
-                data-testid={`button-fill-${account.role.toLowerCase()}`}
-              >
-                {account.role}
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : !challengeMode ? (
-        <p className="vl-login-enterprise-note">
-          Enterprise mode · demo credentials are disabled. Contact your administrator for access.
-        </p>
       ) : null}
     </AuthShell>
   );
