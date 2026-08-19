@@ -5,7 +5,27 @@ import {
   accessTokenValid,
 } from './token';
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? '/api';
+function resolveApiBase(raw?: string): string {
+  const trimmed = (raw ?? '').trim().replace(/\/+$/, '');
+  const fallback = '/api';
+  if (!trimmed) return fallback;
+  if (/^https?:\/\//i.test(trimmed)) {
+    try {
+      const url = new URL(trimmed);
+      const pathname = url.pathname.replace(/\/+$/, '') || '/api';
+      return `${url.origin}${pathname === '/' ? '/api' : pathname}`;
+    } catch {
+      return fallback;
+    }
+  }
+  return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+}
+
+const API_BASE = resolveApiBase(import.meta.env.VITE_API_BASE);
+
+function apiUrl(path: string): string {
+  return `${API_BASE}${path.startsWith('/') ? path : `/${path}`}`;
+}
 
 export class ApiError extends Error {
   status: number;
@@ -28,7 +48,7 @@ async function refreshAccessToken(): Promise<boolean> {
   if (refreshPromise) return refreshPromise;
   refreshPromise = (async () => {
     try {
-      const response = await fetch(`${API_BASE}/auth/refresh`, {
+      const response = await fetch(apiUrl('/auth/refresh'), {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -81,7 +101,7 @@ export async function request<T>(path: string, init: RequestOptions = {}): Promi
 
   let response: Response;
   try {
-    response = await fetch(`${API_BASE}${path}`, {
+    response = await fetch(apiUrl(path), {
       ...rest,
       signal: controller.signal,
       headers: nextHeaders,
@@ -439,6 +459,7 @@ export const api = {
   refreshSignals: () =>
     request<any>('/intelligence/refresh', { method: 'POST', body: '{}', timeoutMs: 12_000 }),
   agents: () => request<any[]>('/ai/agents'),
+  aiFloor: () => request<any>('/ai/floor', { timeoutMs: 8_000 }),
   aiHealth: () => request<any>('/ai/health', { timeoutMs: 8_000 }),
   aiCopilot: () => request<any>('/ai/copilot', { timeoutMs: 8_000 }),
   runAgent: (agentId: string, body?: Record<string, string>) =>
@@ -577,6 +598,8 @@ export const api = {
   patientBilling: () => request<any[]>('/patient-billing'),
   upsertProviderSchedule: (body: Record<string, unknown>) =>
     request<any>('/provider-schedules', { method: 'POST', body: JSON.stringify(body) }),
+  deleteProviderSchedule: (id: string) =>
+    request<any>(`/provider-schedules/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   addProviderTimeOff: (body: Record<string, unknown>) =>
     request<any>('/provider-time-off', { method: 'POST', body: JSON.stringify(body) }),
   retryIntegrationMessage: (id: string) =>

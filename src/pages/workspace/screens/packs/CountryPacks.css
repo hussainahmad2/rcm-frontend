@@ -1,0 +1,209 @@
+/* packs screen styles. Shared chrome/buttons/panels stay in WorkspacePage.css (workspace shell). */
+
+/* ── Country packs ───────────────────────────────────────── */
+
+.ax-pack-disclaimer {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: 9px;
+  background: hsl(42 52% 90%);
+  border: 1px solid hsl(42 40% 78%);
+  color: var(--ax-soft);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.ax-pack-disclaimer svg { color: var(--ax-coral); flex-shrink: 0; }
+
+.ax-packs-layout {
+  display: grid;
+  grid-template-columns: 0.9fr 1.2fr;
+  gap: 14px;
+  align-items: start;
+}
+
+.ax-pack-list {
+  display: grid;
+  gap: 8px;
+}
+
+.ax-pack-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--ax-border);
+  background: var(--ax-card);
+  border-radius: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  color: inherit;
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+.ax-pack-row:hover,
+.ax-pack-row.selected {
+  border-color: var(--ax-teal);
+  background: hsl(var(--secondary) / 0.07);
+}
+
+.ax-country-code {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--ax-navy);
+  color: var(--ax-cream);
+  font: 700 12px var(--app-font-mono);
+}
+
+.ax-country-code.large {
+  width: 56px;
+  height: 56px;
+  font-size: 14px;
+  border-radius: 12px;
+  background: var(--ax-coral);
+  color: #fff;
+}
+
+.ax-pack-row b {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 3px;
+}
+
+.ax-pack-row small {
+  color: var(--ax-soft);
+  font-size: 11px;
+}
+
+.ax-pack-detail {
+  display: grid;
+  gap: 14px;
+}
+
+.ax-pack-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 12px;
+  background: var(--ax-navy);
+  color: var(--ax-cream);
+}
+
+.ax-pack-hero .ax-kicker { color: var(--ax-coral); }
+
+.ax-pack-hero h2 {
+  margin: 8px 0 8px;
+  font: 600 28px var(--app-font-serif);
+  letter-spacing: -0.04em;
+}
+
+.ax-pack-hero p {
+  margin: 0;
+  color: rgba(247, 245, 239, 0.65);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.ax-pack-sections {
+  display: grid;
+  gap: 14px;
+}
+
+.ax-concept-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.ax-concept-list span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: hsl(var(--secondary) / 0.12);
+  border: 1px solid hsl(var(--secondary) / 0.25);
+  color: #287f70;
+  font: 700 11px var(--app-font-mono);
+}
+
+.ax-pack-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 8px;
+  background: hsl(var(--secondary) / 0.08);
+  border: 1px solid hsl(var(--secondary) / 0.2);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ax-soft);
+}
+
+.ax-pack-note svg {
+  color: var(--ax-teal);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.ax-pack-note b {
+  display: block;
+  color: var(--ax-navy);
+  margin-bottom: 3px;
+}
+
+.ax-pack-connectivity {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: var(--ax-soft);
+  line-height: 1.45;
+}
+
+.ax-pack-iface-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.ax-pack-iface {
+  border: 1px solid var(--ax-border);
+  border-radius: 10px;
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+  background: hsl(var(--muted) / 0.35);
+}
+
+.ax-pack-iface-head {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.ax-pack-iface-head b {
+  font-size: 13px;
+}
+
+.ax-pack-iface p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ax-soft);
+  line-height: 1.45;
+}
+
+.ax-pack-iface-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+

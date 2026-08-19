@@ -1,5 +1,6 @@
-/* Velora Revenue OS — Workspace (control room)
-   Co-located with WorkspacePage.tsx. Uses design tokens from styles/tokens.css. */
+/* Velora Revenue OS — Workspace shell + shared chrome
+   Co-located with WorkspacePage.tsx. Screen-specific CSS lives under screens/<name>/.
+   Sidebar rules (.ax-sidebar*) stay here — do not regroup or restyle Command Center nav. */
 
 .axiom-workspace {
   --ax-navy: hsl(var(--primary));
@@ -713,7 +714,8 @@ button.ax-topbar-avatar:hover {
   flex-wrap: wrap;
 }
 
-.ax-inline-controls select {
+.ax-inline-controls select,
+.ax-hours-editor input[type='time'] {
   height: 36px;
   border: 1px solid var(--ax-border);
   border-radius: 8px;
@@ -721,6 +723,73 @@ button.ax-topbar-avatar:hover {
   color: var(--ax-ink);
   padding: 0 10px;
   font: 500 13px var(--app-font-sans);
+}
+
+.ax-hours-list {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.ax-hours-list p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.ax-hours-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ax-hours-row > span,
+.ax-hours-row > p {
+  flex: 1 1 auto;
+}
+
+.ax-hours-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.ax-hours-row-actions .ax-ghost-button,
+.ax-hours-row-actions .ax-outline-button,
+.ax-hours-row-actions .ax-primary-button {
+  min-width: 64px;
+  height: 30px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.ax-hours-row input[type='time'] {
+  height: 30px;
+  width: 110px;
+  border: 1px solid var(--ax-border);
+  border-radius: 6px;
+  background: var(--ax-card);
+  color: var(--ax-ink);
+  padding: 0 8px;
+  font: 500 13px var(--app-font-sans);
+}
+
+.ax-hours-editor {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid hsl(var(--secondary) / 0.2);
+}
+
+.ax-hours-editor .ax-kicker {
+  margin: 0;
+}
+
+.ax-hours-editor input[type='time'] {
+  width: 118px;
 }
 
 .ax-inline-error {
@@ -1398,12 +1467,30 @@ button.ax-metric {
   font: inherit;
 }
 
-.ax-modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 4px;
+.ax-modal-copy {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ax-ink);
 }
+
+.ax-modal-actions .ax-danger-button {
+  min-width: 96px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: #b42318;
+  color: #fff;
+  font: 700 13px/1 var(--app-font-sans);
+  cursor: pointer;
+}
+
+.ax-modal-actions .ax-danger-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 
 .ax-inline-success {
   margin: 0;
@@ -2853,7 +2940,7 @@ button.ax-opportunity:hover,
   color: var(--ax-soft);
 }
 
-.ax-setting-fields input {
+.ax-setting-fields input:not([type='checkbox']):not([type='radio']) {
   height: 40px;
   border-radius: 8px;
   border: 1px solid var(--ax-border);
@@ -2927,7 +3014,7 @@ button.ax-opportunity:hover,
   grid-column: 1 / -1;
 }
 
-.ax-reg-fields input,
+.ax-reg-fields input:not([type='checkbox']):not([type='radio']),
 .ax-reg-fields select {
   height: 42px;
   border-radius: 8px;
@@ -2955,10 +3042,49 @@ button.ax-opportunity:hover,
   font-family: var(--app-font-sans);
 }
 
-.ax-reg-actions {
+.ax-reg-actions,
+.ax-modal-actions {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
-  padding-top: 4px;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 16px;
+  margin-top: 4px;
+}
+
+.ax-reg-actions .ax-ghost-button,
+.ax-reg-actions .ax-primary-button,
+.ax-reg-actions .ax-outline-button,
+.ax-modal-actions .ax-ghost-button,
+.ax-modal-actions .ax-primary-button,
+.ax-modal-actions .ax-outline-button {
+  min-width: 96px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 8px;
+  box-sizing: border-box;
+  font: 700 13px/1 var(--app-font-sans);
+}
+
+.ax-reg-actions .ax-ghost-button,
+.ax-modal-actions .ax-ghost-button,
+.ax-modal-actions .ax-outline-button {
+  border: 1px solid var(--ax-border);
+  background: hsl(var(--background));
+  color: var(--ax-navy);
+}
+
+.ax-reg-actions .ax-ghost-button:hover,
+.ax-modal-actions .ax-ghost-button:hover,
+.ax-modal-actions .ax-outline-button:hover {
+  border-color: var(--ax-navy);
+  transform: none;
+}
+
+.ax-reg-actions .ax-primary-button,
+.ax-modal-actions .ax-primary-button {
+  border: 1px solid transparent;
 }
 
 @media (max-width: 980px) {
@@ -3286,15 +3412,48 @@ button.ax-opportunity:hover,
 
 .ax-check-row {
   display: flex;
+  flex-direction: row;
   gap: 8px;
   align-items: center;
-  margin: 8px 0;
+  margin: 0;
+  width: fit-content;
+  font: 500 13px/1.3 var(--app-font-sans);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ax-ink);
+  cursor: pointer;
+}
+
+.ax-setting-fields .ax-check-row,
+.ax-reg-fields .ax-check-row {
+  display: flex;
+  gap: 8px;
+}
+
+.ax-check-row input[type='checkbox'] {
+  width: 14px;
+  height: 14px;
+  min-width: 14px;
+  min-height: 14px;
+  margin: 0;
+  padding: 0;
+  border-radius: 3px;
+  accent-color: var(--ax-teal);
+  flex-shrink: 0;
+  cursor: pointer;
 }
 
 .ax-consent-stack,
 .ax-activity-list {
   display: grid;
-  gap: 10px;
+  gap: 8px;
+}
+
+.ax-role-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: 2px;
 }
 
 .ax-activity-row {

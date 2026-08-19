@@ -1,0 +1,211 @@
+/* claims screen styles. Shared chrome/buttons/panels stay in WorkspacePage.css (workspace shell). */
+
+/* ── Claims / generic data tables ────────────────────────── */
+
+.ax-table-panel { overflow: hidden; }
+
+.ax-claims-table {
+  display: grid;
+  gap: 0;
+}
+
+.ax-claims-table > .ax-table-head {
+  grid-template-columns: 1.2fr 1fr 0.9fr 0.8fr 0.8fr 0.9fr 1.1fr;
+  padding: 0 8px 10px;
+}
+
+.ax-claim-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 0.9fr 0.8fr 0.8fr 0.9fr 1.1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 8px;
+  border-top: 1px solid var(--ax-border);
+  font-size: 13px;
+}
+
+.ax-claim-row b { font-weight: 600; color: var(--ax-navy); }
+.ax-claim-row strong,
+.ax-claim-amount {
+  font: 600 13px var(--app-font-sans);
+  color: var(--ax-ink);
+}
+
+.ax-claim-amount small {
+  display: block;
+  margin-top: 3px;
+  font: 400 11.5px var(--app-font-sans);
+  color: var(--ax-soft);
+}
+
+.ax-table-head-5,
+.ax-claim-row-5 {
+  grid-template-columns: 1.2fr 1.2fr 1fr 0.75fr 1.15fr !important;
+}
+
+.ax-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.ax-insight-card {
+  margin-top: 4px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid hsl(var(--secondary) / 0.28);
+  background:
+    linear-gradient(135deg, hsl(var(--secondary) / 0.08), hsl(var(--accent) / 0.04)),
+    var(--ax-card);
+  display: grid;
+  gap: 8px;
+}
+
+.ax-insight-card-estimate {
+  border-color: hsl(var(--accent) / 0.28);
+  background:
+    linear-gradient(135deg, hsl(var(--accent) / 0.08), hsl(var(--secondary) / 0.04)),
+    var(--ax-card);
+}
+
+.ax-insight-card-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.ax-insight-card-top h3 {
+  margin: 4px 0 0;
+  font: 600 15px/1.3 var(--app-font-serif);
+  letter-spacing: -0.02em;
+  color: var(--ax-ink);
+}
+
+.ax-insight-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.ax-insight-conf {
+  font: 600 11px var(--app-font-sans);
+  color: var(--ax-soft);
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: hsl(var(--muted));
+}
+
+.ax-insight-summary {
+  margin: 0;
+  font: 400 13.5px/1.5 var(--app-font-sans);
+  color: var(--ax-ink);
+}
+
+.ax-insight-next {
+  margin: 0;
+  font: 400 13px/1.45 var(--app-font-sans);
+  color: var(--ax-soft);
+}
+
+.ax-insight-next b {
+  color: var(--ax-teal);
+  font-weight: 600;
+}
+
+.ax-insight-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  padding-top: 4px;
+  border-top: 1px solid var(--ax-border);
+  font: 400 12.5px/1.4 var(--app-font-sans);
+  color: var(--ax-soft);
+}
+
+.ax-insight-meta b {
+  color: var(--ax-ink);
+  font-weight: 600;
+}
+
+.ax-claim-row.selected {
+  background: hsl(var(--secondary) / 0.08);
+  outline: 1px solid hsl(var(--secondary) / 0.28);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.ax-claim-row[role='button'] {
+  cursor: pointer;
+}
+
+.ax-scrub-layers {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.ax-scrub-layer {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.ax-scrub-layer small {
+  display: block;
+  color: var(--ax-soft);
+  margin-top: 2px;
+}
+
+.ax-event-list {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.ax-event-list span {
+  display: block;
+  font-size: 12px;
+  color: var(--ax-soft);
+}
+
+/* Adaptive column counts via fewer children still look ok with auto-flow gaps */
+.ax-claims-table .ax-table-head:has(> :nth-child(5):last-child),
+.ax-claims-table .ax-claim-row:has(> :nth-child(5):last-child) {
+  grid-template-columns: 1.3fr 1.1fr 0.9fr 1fr 0.9fr;
+}
+
+.ax-claims-table .ax-table-head:has(> :nth-child(4):last-child),
+.ax-claims-table .ax-claim-row:has(> :nth-child(4):last-child) {
+  grid-template-columns: 1.3fr 1fr 1fr 1fr;
+}
+
+.ax-claims-table .ax-table-head:has(> :nth-child(7):last-child),
+.ax-claims-table .ax-claim-row:has(> :nth-child(7):last-child) {
+  grid-template-columns: 1.15fr 0.85fr 0.85fr 0.75fr 0.7fr 0.85fr 1.2fr;
+}
+
+.ax-score {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 72px;
+}
+
+.ax-score i {
+  display: block;
+  height: 5px;
+  border-radius: 99px;
+  background: var(--ax-teal);
+  max-width: 56px;
+}
+
+.ax-score b {
+  font: 700 12px var(--app-font-mono);
+}
+

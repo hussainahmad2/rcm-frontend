@@ -1,0 +1,262 @@
+/* queue screen styles. Shared chrome/buttons/panels stay in WorkspacePage.css (workspace shell). */
+
+/* ── Queue / tables ──────────────────────────────────────── */
+
+.ax-queue-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ax-search {
+  flex: 1;
+  min-width: 220px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  height: 42px;
+  border: 1px solid var(--ax-border);
+  border-radius: 8px;
+  background: var(--ax-card);
+  color: var(--ax-soft);
+}
+
+.ax-search input {
+  flex: 1;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--ax-navy);
+  font-size: 13px;
+}
+
+.ax-queue-layout {
+  display: grid;
+  grid-template-columns: 1.2fr 0.9fr;
+  gap: 14px;
+  align-items: start;
+}
+
+.ax-table-head {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 0.8fr 0.7fr;
+  gap: 10px;
+  padding: 0 12px 10px;
+  border-bottom: 1px solid var(--ax-border);
+  color: var(--ax-soft);
+  font: 600 10.5px/1.2 var(--app-font-sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ax-queue-list .ax-table-head {
+  margin-bottom: 6px;
+  font: 600 10.5px/1.2 var(--app-font-sans);
+  letter-spacing: 0.05em;
+}
+
+.ax-queue-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 0.8fr 0.7fr;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  border: 1px solid transparent;
+  border-bottom: 1px solid var(--ax-border);
+  background: transparent;
+  border-radius: 8px;
+  padding: 12px;
+  cursor: pointer;
+  color: inherit;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.ax-queue-row:hover {
+  background: hsl(var(--secondary) / 0.05);
+}
+
+.ax-queue-row.selected {
+  background: hsl(var(--secondary) / 0.1);
+  border-color: hsl(var(--secondary) / 0.35);
+}
+
+.ax-queue-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.ax-queue-main b {
+  display: block;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ax-queue-main small,
+.ax-queue-context small,
+.ax-claim-row small {
+  display: block;
+  color: var(--ax-soft);
+  font-size: 11px;
+  margin-top: 3px;
+}
+
+.ax-queue-context {
+  font-size: 12px;
+  color: var(--ax-soft);
+}
+
+.ax-queue-list .ax-panel-head .ax-kicker {
+  font: 600 11px/1.2 var(--app-font-sans);
+  letter-spacing: 0.06em;
+}
+
+.ax-queue-list .ax-panel-head h2 {
+  font: 600 22px/1.2 var(--app-font-serif);
+  letter-spacing: -0.025em;
+}
+
+.ax-queue-list .ax-panel-head h2 em {
+  font: 500 15px/1.2 var(--app-font-sans);
+  letter-spacing: -0.01em;
+  color: var(--ax-soft);
+}
+
+.ax-sort-label {
+  font: 600 12px/1.2 var(--app-font-sans);
+  letter-spacing: 0.02em;
+  color: var(--ax-soft);
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: hsl(var(--muted));
+  border: 1px solid var(--ax-border);
+  white-space: nowrap;
+}
+
+.ax-queue-amount {
+  display: grid;
+  gap: 3px;
+  font: 600 13.5px/1.2 var(--app-font-sans);
+  color: var(--ax-navy);
+  letter-spacing: -0.01em;
+}
+
+.ax-queue-amount small {
+  display: block;
+  font: 500 11px/1.2 var(--app-font-sans);
+  color: var(--ax-soft);
+  letter-spacing: 0;
+}
+
+.ax-module-icon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: hsl(var(--secondary) / 0.12);
+  color: var(--ax-teal);
+  flex-shrink: 0;
+}
+
+.ax-module-icon.large {
+  width: 44px;
+  height: 44px;
+  border-radius: 11px;
+}
+
+.ax-inspection {
+  position: sticky;
+  top: 80px;
+  min-height: 360px;
+}
+
+.ax-inspection-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.ax-inspection-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.ax-inspection-title h2 {
+  margin: 0;
+  font: 600 22px/1.15 var(--app-font-serif);
+  letter-spacing: -0.03em;
+}
+
+.ax-inspection-title small {
+  display: block;
+  margin-top: 4px;
+  color: var(--ax-soft);
+  font-size: 12px;
+}
+
+.ax-inspection-value {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  margin-bottom: 14px;
+  border-radius: 9px;
+  background: hsl(var(--primary) / 0.04);
+  border: 1px solid var(--ax-border);
+}
+
+.ax-inspection-value strong {
+  font: 700 28px var(--app-font-serif);
+  letter-spacing: -0.04em;
+}
+
+.ax-detail-list {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.ax-detail-list > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid hsl(var(--border) / 0.7);
+}
+
+.ax-detail-list span { color: var(--ax-soft); }
+.ax-detail-list b { color: var(--ax-navy); font-weight: 600; }
+
+.ax-reason {
+  padding: 12px;
+  border-radius: 8px;
+  background: hsl(var(--secondary) / 0.08);
+  border: 1px solid hsl(var(--secondary) / 0.2);
+  margin-bottom: 14px;
+}
+
+.ax-reason p {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ax-ink);
+}
+
+.ax-inspection-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+

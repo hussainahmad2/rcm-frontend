@@ -39,18 +39,19 @@ export function useAiCopilot(enabled: boolean) {
 
     if (!primed.current) {
       primed.current = true;
-      for (const item of suggestions) seen.current.add(item.id);
-      const first = suggestions[0];
-      toast({
-        title: first.headline,
-        description: first.nextAction || first.summary,
-      });
+      for (const item of suggestions) {
+        seen.current.add(item.id);
+        seen.current.add(`${item.headline}|${item.nextAction}`);
+      }
       return;
     }
 
     for (const item of suggestions) {
-      if (seen.current.has(item.id)) continue;
+      const fingerprint = `${item.headline}|${item.nextAction}`;
+      if (seen.current.has(item.id) || seen.current.has(fingerprint)) continue;
+      if (item.offline) continue;
       seen.current.add(item.id);
+      seen.current.add(fingerprint);
       toast({
         title: item.headline,
         description: item.nextAction || item.summary,

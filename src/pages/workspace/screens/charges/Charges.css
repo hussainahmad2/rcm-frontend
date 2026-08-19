@@ -1,0 +1,43 @@
+/* Capture-charge form only. Shared buttons/panels stay in WorkspacePage.css. */
+
+.ax-capture-form {
+  display: grid;
+  gap: 16px;
+  padding: 6px 2px 10px;
+}
+
+.ax-capture-form .ax-reg-column > .ax-muted {
+  margin: -4px 0 4px;
+}
+
+.ax-capture-form .ax-reg-column .ax-reg-actions {
+  padding-top: 8px;
+  margin-top: 0;
+}
+
+.ax-capture-followup {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--ax-border);
+  background: hsl(var(--muted) / 0.28);
+}
+
+.ax-capture-followup .ax-muted {
+  margin: 4px 0 0;
+}
+
+.ax-capture-followup .ax-reg-actions {
+  padding-top: 0;
+  margin-top: 0;
+}
+
+@media (max-width: 960px) {
+  .ax-capture-form .ax-reg-grid {
+    grid-template-columns: 1fr;
+  }
+}
