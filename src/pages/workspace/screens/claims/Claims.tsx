@@ -171,9 +171,9 @@ export function Claims() {
   return (
     <div className="ax-view">
       <SectionHeading
-        eyebrow="Billing engine"
+        eyebrow="Getting paid"
         title="Claims"
-        detail="Executable RuleVersion scrub — quality, payer context and denial risk before submission."
+        detail="Check each claim before it is sent — quality, insurance rules, and denial risk."
         action={
           <button className="ax-outline-button" type="button" onClick={() => void claims.refetch()} data-testid="button-export-claims">
             <RefreshCw size={14} /> Refresh
@@ -347,7 +347,7 @@ export function Claims() {
                   <b>{formatLabel(claimDetail.transmissionStatus)}</b>
                 </div>
                 <div>
-                  <span>Payer</span>
+                  <span>Insurance</span>
                   <b>{formatLabel(claimDetail.payerStatus)}</b>
                 </div>
                 <div>

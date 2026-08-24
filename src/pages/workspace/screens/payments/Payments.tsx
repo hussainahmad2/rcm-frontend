@@ -131,8 +131,8 @@ export function Payments() {
   return (
     <div className="ax-view">
       <SectionHeading
-        eyebrow="Reimbursement"
-        title="ERA posting & payments"
+        eyebrow="Getting paid"
+        title="Payments"
         detail="Ledger-posted remittances, bank rec, contract variance, refunds, and payer recoupments. Money is never edited in place."
       />
       {note ? (
