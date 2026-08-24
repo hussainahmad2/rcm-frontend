@@ -54,8 +54,8 @@ function eligibilityTone(status?: string) {
 }
 
 export const ROLE_HOME_LABEL: Record<RoleId, string> = {
-  superadmin: 'Command center',
-  admin: 'Command center',
+  superadmin: 'Home',
+  admin: 'Home',
   operator: 'Front desk',
   coder: 'Coding desk',
   biller: 'Billing desk',
@@ -201,7 +201,7 @@ export function RoleHome({ onNavigate }: { onNavigate: (view: WorkspaceView) => 
       {persona?.showCoding ? (
         <QueuePanel
           kicker="Clinical coding"
-          title="Encounters awaiting coding"
+          title="Visits waiting for codes"
           actionLabel="Open coding"
           onAction={() => onNavigate('coding')}
           empty="No encounters are waiting for codes."
