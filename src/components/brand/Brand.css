@@ -11,9 +11,9 @@
   height: 29px;
   display: grid;
   place-items: center;
-  color: hsl(var(--primary));
-  background: hsl(var(--accent));
-  border-radius: 8px 8px 8px 2px;
+  color: #fff;
+  background: hsl(var(--secondary));
+  border-radius: 10px;
 }
 
 .brand-mark svg {
