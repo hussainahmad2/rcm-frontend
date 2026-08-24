@@ -142,7 +142,7 @@ export function AddPayerFlow({ onCreated, onCancel }: Props) {
         {current.id === 'review' ? (
           <div className="ax-detail-list">
             <div>
-              <span>Payer</span>
+              <span>Insurance company</span>
               <b>{form.name || 'Missing'}</b>
             </div>
             <div>

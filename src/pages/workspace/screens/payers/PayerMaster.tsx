@@ -66,8 +66,8 @@ export function PayerMaster({
   return (
     <div className="ax-view">
       <SectionHeading
-        eyebrow="Master data"
-        title="Payers & plans"
+        eyebrow="Setup"
+        title="Insurance companies"
         detail="Draft → Active lifecycle. Plans publish independently. Routing identifiers are financial controls."
       />
       {note ? (
