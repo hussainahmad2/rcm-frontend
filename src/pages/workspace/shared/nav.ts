@@ -1,7 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import {
   BadgeDollarSign,
-  BarChart3,
   Bot,
   Building2,
   CalendarDays,
@@ -25,27 +24,42 @@ import {
 } from 'lucide-react';
 import type { WorkspaceView } from '../workspace-types';
 
-export const navItems: { id: WorkspaceView; label: string; icon: LucideIcon }[] = [
-  { id: 'overview', label: 'Command center', icon: LayoutDashboard },
-  { id: 'queue', label: 'Work queue', icon: ListFilter },
-  { id: 'registration', label: 'Registration desk', icon: ClipboardPlus },
+export type NavItem = { id: WorkspaceView; label: string; icon: LucideIcon };
+
+export const navItems: NavItem[] = [
+  { id: 'overview', label: 'Home', icon: LayoutDashboard },
+  { id: 'queue', label: 'My work', icon: ListFilter },
+  { id: 'registration', label: 'Check-in', icon: ClipboardPlus },
   { id: 'patients', label: 'Patients', icon: UsersRound },
-  { id: 'schedule', label: 'Schedule', icon: CalendarDays },
-  { id: 'providers', label: 'Providers', icon: Hospital },
-  { id: 'payers', label: 'Payers', icon: Building2 },
-  { id: 'eligibility', label: 'Eligibility', icon: UserRoundCheck },
-  { id: 'authorizations', label: 'Authorizations', icon: ClipboardCheck },
-  { id: 'encounters', label: 'Encounters', icon: ClipboardList },
-  { id: 'coding', label: 'Coding', icon: Stethoscope },
-  { id: 'charges', label: 'Charges', icon: Receipt },
+  { id: 'schedule', label: 'Appointments', icon: CalendarDays },
+  { id: 'providers', label: 'Clinicians', icon: Hospital },
+  { id: 'payers', label: 'Insurance', icon: Building2 },
+  { id: 'eligibility', label: 'Coverage check', icon: UserRoundCheck },
+  { id: 'authorizations', label: 'Prior auths', icon: ClipboardCheck },
+  { id: 'encounters', label: 'Visits', icon: ClipboardList },
+  { id: 'coding', label: 'Codes', icon: Stethoscope },
+  { id: 'charges', label: 'Bills', icon: Receipt },
   { id: 'claims', label: 'Claims', icon: FileCheck2 },
-  { id: 'denials', label: 'Denials & appeals', icon: ShieldAlert },
-  { id: 'ar', label: 'A/R queue', icon: BarChart3 },
-  { id: 'payments', label: 'Payments', icon: BadgeDollarSign },
-  { id: 'contracts', label: 'Contracts', icon: Handshake },
-  { id: 'leakage', label: 'Revenue leakage', icon: CircleDollarSign },
-  { id: 'ai', label: 'AI workforce', icon: Bot },
-  { id: 'packs', label: 'Country packs', icon: Globe2 },
-  { id: 'rules', label: 'Rules', icon: Gavel },
-  { id: 'settings', label: 'Operations', icon: Settings2 },
+  { id: 'denials', label: 'Denied claims', icon: ShieldAlert },
+  { id: 'ar', label: 'Unpaid bills', icon: BadgeDollarSign },
+  { id: 'payments', label: 'Payments', icon: CircleDollarSign },
+  { id: 'contracts', label: 'Payer contracts', icon: Handshake },
+  { id: 'leakage', label: 'Lost money', icon: CircleDollarSign },
+  { id: 'ai', label: 'AI helpers', icon: Bot },
+  { id: 'packs', label: 'Country settings', icon: Globe2 },
+  { id: 'rules', label: 'Billing rules', icon: Gavel },
+  { id: 'settings', label: 'Settings', icon: Settings2 },
 ];
+
+export const navGroups: { id: string; label: string; itemIds: WorkspaceView[] }[] = [
+  { id: 'today', label: 'Today', itemIds: ['overview', 'queue'] },
+  { id: 'front-desk', label: 'Front desk', itemIds: ['registration', 'patients', 'schedule', 'providers'] },
+  { id: 'before-visit', label: 'Before the visit', itemIds: ['eligibility', 'authorizations'] },
+  { id: 'after-visit', label: 'After the visit', itemIds: ['encounters', 'coding', 'charges'] },
+  { id: 'money', label: 'Getting paid', itemIds: ['claims', 'denials', 'ar', 'payments'] },
+  { id: 'setup', label: 'Setup', itemIds: ['payers', 'contracts', 'leakage', 'ai', 'packs', 'rules', 'settings'] },
+];
+
+export function navItemById(id: WorkspaceView) {
+  return navItems.find((item) => item.id === id);
+}
