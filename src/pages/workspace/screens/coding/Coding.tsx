@@ -139,8 +139,8 @@ export function Coding() {
   return (
     <div className="ax-view">
       <SectionHeading
-        eyebrow="Clinical coding assist"
-        title="Coding"
+        eyebrow="After the visit"
+        title="Codes"
         detail="Generate diagnosis and procedure suggestions, then accept, modify or reject with an audit trail."
         action={
           <div className="ax-inline-controls">

@@ -96,8 +96,8 @@ export function ScheduleBoard() {
       <div className="ax-section-heading">
         <div>
           <span className="ax-kicker">Practice management</span>
-          <h1>Schedule</h1>
-          <p>Working hours minus booked slots, lunch, and time off. Appointments are planned activity — not encounters or claims.</p>
+          <h1>Appointments</h1>
+          <p>Open slots minus booked time, lunch, and time off. An appointment is a planned visit — not a bill or a claim.</p>
         </div>
       </div>
       {note ? (

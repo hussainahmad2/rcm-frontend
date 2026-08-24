@@ -50,10 +50,10 @@ export function EncountersBoard() {
     <div className="ax-view">
       <div className="ax-section-heading">
         <div>
-          <span className="ax-kicker">Clinical layer · optional native EHR later</span>
-          <h1>Encounters</h1>
+          <span className="ax-kicker">After the visit</span>
+          <h1>Visits</h1>
           <p>
-            An appointment is planned care. An encounter is care that happened. Claims are created only after coding and charges.
+            An appointment is a plan. A visit is care that happened. A claim is sent only after codes and bills are ready.
           </p>
         </div>
       </div>
@@ -102,11 +102,11 @@ export function EncountersBoard() {
               </div>
               <dl className="ax-detail-list">
                 <div>
-                  <dt>MRN</dt>
+                  <dt>Chart number</dt>
                   <dd>{selected.mrn}</dd>
                 </div>
                 <div>
-                  <dt>Provider</dt>
+                  <dt>Clinician</dt>
                   <dd>{selected.providerName}</dd>
                 </div>
                 <div>

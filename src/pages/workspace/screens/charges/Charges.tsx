@@ -188,8 +188,8 @@ export function Charges() {
   return (
     <div className="ax-view">
       <SectionHeading
-        eyebrow="Charge capture"
-        title="Charges"
+        eyebrow="After the visit"
+        title="Bills"
         detail={`${unbilled.length} unbilled · ${money(unbilledTotal)} waiting for claim creation.`}
       />
       {note ? (
