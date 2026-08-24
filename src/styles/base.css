@@ -37,10 +37,10 @@ h1, h2, h3, h4 {
   gap: 9px;
   border: 0;
   cursor: pointer;
-  background: hsl(var(--accent));
-  color: hsl(var(--accent-foreground));
+  background: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
   padding: 13px 18px;
-  border-radius: 6px;
+  border-radius: 12px;
   font-family: var(--app-font-sans);
   font-size: 13px;
   font-weight: 600;
@@ -49,8 +49,8 @@ h1, h2, h3, h4 {
 }
 .button-primary:hover {
   transform: translateY(-2px);
-  background: hsl(199 82% 36%);
-  box-shadow: 0 10px 26px hsl(var(--accent) / 0.28);
+  background: hsl(22 72% 40%);
+  box-shadow: 0 10px 26px hsl(var(--secondary) / 0.28);
 }
 
 @media (max-width: 900px) {
