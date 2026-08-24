@@ -1,6 +1,7 @@
 import { Link } from 'wouter';
-import { ArrowLeft, Command, type LucideIcon } from 'lucide-react';
+import { type LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { Brand } from '@/components/brand/Brand';
 import './LoginPage.css';
 
 export function AuthShell({
@@ -16,27 +17,26 @@ export function AuthShell({
 }) {
   return (
     <main className="vl-login">
-      <section className="vl-login-shell">
-        <aside className="vl-login-aside">
-          <div className="vl-login-brand">
-            <span className="vl-login-mark">
-              <Command size={18} />
-            </span>
-            <div>
-              <strong>Velora Revenue OS</strong>
-              <span>Revenue control room</span>
-            </div>
-          </div>
+      <header className="vl-chrome">
+        <Link href="/" className="vl-chrome-brand">
+          <Brand />
+        </Link>
+        <Link href="/" className="vl-chrome-back">
+          Back home
+        </Link>
+      </header>
+      <section className="vl-stage">
+        <div className="vl-intro">
           <h1>{title}</h1>
           <p>{body}</p>
           <ul>
             {points.map(({ icon: Icon, text }) => (
               <li key={text}>
-                <Icon size={16} /> {text}
+                <Icon size={14} /> {text}
               </li>
             ))}
           </ul>
-        </aside>
+        </div>
         <div className="vl-login-card">{children}</div>
       </section>
     </main>
@@ -48,7 +48,7 @@ export function AuthBackLinks({ showHome = true }: { showHome?: boolean }) {
     <div className="vl-auth-links">
       {showHome ? (
         <Link href="/" data-testid="link-auth-home">
-          <ArrowLeft size={14} /> Back to landing page
+          Back to landing page
         </Link>
       ) : null}
       <Link href="/login" data-testid="link-auth-login">
