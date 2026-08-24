@@ -85,14 +85,14 @@ export function ArQueue() {
   const [followForm, setFollowForm] = useState({ entityId: '', result: '', representative: '', referenceNumber: '' });
   const [note, setNote] = useState('');
 
-  if (ar.isLoading) return <div className="ax-view"><LoadingState label="Loading A/R queue…" /></div>;
+  if (ar.isLoading) return <div className="ax-view"><LoadingState label="Loading unpaid bills…" /></div>;
   if (ar.error) return <div className="ax-view"><ErrorState error={ar.error} onRetry={() => void ar.refetch()} /></div>;
 
   const list = ar.data ?? [];
 
   return (
     <div className="ax-view">
-      <SectionHeading eyebrow="Collections priority" title="A/R queue" detail="Live A/R from claim and ledger projections — insurance vs patient buckets." />
+      <SectionHeading eyebrow="Getting paid" title="Unpaid bills" detail="Who still owes money — insurance vs the patient." />
       <section className="ax-panel ax-table-panel">
         <div className="ax-panel-head">
           <div>

@@ -112,8 +112,8 @@ export function Denials() {
   return (
     <div className="ax-view">
       <SectionHeading
-        eyebrow="Recovery + prevention"
-        title="Denials & appeals"
+        eyebrow="Getting paid"
+        title="Denied claims"
         detail="Analyze root cause → write Denial Knowledge Base entry → promote executable scrub RuleVersion so the next claim is blocked before submission."
       />
       <div className="ax-denial-summary">

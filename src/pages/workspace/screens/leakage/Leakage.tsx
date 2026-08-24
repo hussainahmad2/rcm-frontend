@@ -90,8 +90,8 @@ export function Leakage() {
   return (
     <div className="ax-view">
       <SectionHeading
-        eyebrow="Preventable value"
-        title="Revenue leakage"
+        eyebrow="Setup"
+        title="Lost money"
         detail="A prioritized view of where expected cash is diverging from the operating model."
       />
       <div className="ax-leakage-layout">
