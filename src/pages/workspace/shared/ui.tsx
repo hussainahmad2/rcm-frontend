@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import { AlertCircle, Command, RefreshCw, Sparkles } from 'lucide-react';
+import { AlertCircle, Hexagon, RefreshCw, Sparkles } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { AiInsightView, StatusTone } from './format';
 import { formatLabel } from './format';
@@ -8,10 +8,10 @@ export function BrandLockup() {
   return (
     <span className="ax-brand">
       <span className="ax-brand-mark">
-        <Command size={16} />
+        <Hexagon size={15} />
       </span>
       <span>
-        Velora <b>Revenue OS</b>
+        Velora <b>Desk</b>
       </span>
     </span>
   );
@@ -87,7 +87,7 @@ export function LoadingState({ label = 'Loading…' }: { label?: string }) {
     <div className="ax-empty">
       <RefreshCw size={22} className="ax-spin" />
       <b>{label}</b>
-      <p>Fetching live Velora data.</p>
+      <p>Fetching live clinic data.</p>
     </div>
   );
 }
