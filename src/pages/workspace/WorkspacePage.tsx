@@ -21,7 +21,7 @@ import { useAuth, isAdminRole } from '@/lib/auth';
 import { useAiCopilot } from '@/lib/ai-copilot';
 import type { WorkspaceView } from './workspace-types';
 import { formatLabel } from './shared/format';
-import { navItems } from './shared/nav';
+import { navGroups, navItemById } from './shared/nav';
 import { BrandLockup } from './shared/ui';
 import { Overview } from './screens/overview/Overview';
 import { RoleHome } from './screens/overview/RoleHome';
@@ -137,8 +137,8 @@ export default function WorkspacePage() {
   const [, setLocation] = useLocation();
   const [view, setView] = useState<WorkspaceView>('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ today: true });
   const [tenantOpen, setTenantOpen] = useState(false);
-  const [userOpen, setUserOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
@@ -149,14 +149,20 @@ export default function WorkspacePage() {
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [readNotificationIds, setReadNotificationIds] = useState<string[]>([]);
   const tenantRef = useRef<HTMLDivElement>(null);
-  const userRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
 
-  const visibleNav = useMemo(
-    () => navItems.filter((item) => canAccess(item.id)),
+  const visibleGroups = useMemo(
+    () =>
+      navGroups
+        .map((group) => ({
+          ...group,
+          items: group.itemIds.map((id) => navItemById(id)!).filter((item) => item && canAccess(item.id)),
+        }))
+        .filter((group) => group.items.length > 0),
     [canAccess],
   );
+  const visibleNav = useMemo(() => visibleGroups.flatMap((group) => group.items), [visibleGroups]);
 
   const workItemsQuery = useQuery({
     queryKey: ['work-items', 'header-notifications'],
@@ -241,10 +247,16 @@ export default function WorkspacePage() {
   }, [canAccess, view, visibleNav]);
 
   useEffect(() => {
+    const activeGroup = visibleGroups.find((group) => group.items.some((item) => item.id === view));
+    if (activeGroup) {
+      setOpenGroups((current) => ({ ...current, [activeGroup.id]: true }));
+    }
+  }, [view, visibleGroups]);
+
+  useEffect(() => {
     const onPointerDown = (event: MouseEvent) => {
       const target = event.target as Node;
       if (tenantRef.current && !tenantRef.current.contains(target)) setTenantOpen(false);
-      if (userRef.current && !userRef.current.contains(target)) setUserOpen(false);
       if (profileRef.current && !profileRef.current.contains(target)) setProfileOpen(false);
       if (notifRef.current && !notifRef.current.contains(target)) setNotifOpen(false);
     };
@@ -280,6 +292,9 @@ export default function WorkspacePage() {
     changePassword.mutate();
   };
 
+  const currentPage = visibleNav.find((item) => item.id === view);
+  const currentGroup = visibleGroups.find((group) => group.items.some((item) => item.id === view));
+
   return (
     <main className="axiom-workspace">
       {inactivityWarning ? (
@@ -296,17 +311,15 @@ export default function WorkspacePage() {
           </button>
         </div>
       ) : null}
-      <aside className={`ax-sidebar ${sidebarOpen ? 'open' : ''}`}>
-        <div className="ax-sidebar-top">
-          <Link href="/" className="ax-brand-link" data-testid="link-workspace-brand">
-            <BrandLockup />
-          </Link>
-          <button className="ax-sidebar-close" type="button" aria-label="Close navigation" onClick={() => setSidebarOpen(false)} data-testid="button-close-sidebar">
-            <PanelLeftClose size={16} />
-          </button>
-        </div>
-        <div className={`ax-workspace-label ${tenantOpen ? 'open' : ''}`} ref={tenantRef}>
-          <span className="ax-kicker">Workspace</span>
+
+      <header className="ax-topbar">
+        <button className="ax-menu-trigger" type="button" aria-label="Open navigation" onClick={() => setSidebarOpen(true)} data-testid="button-open-sidebar">
+          <Menu size={18} />
+        </button>
+        <Link href="/" className="ax-brand-link" data-testid="link-workspace-brand">
+          <BrandLockup />
+        </Link>
+        <div className={`ax-clinic-switcher ${tenantOpen ? 'open' : ''}`} ref={tenantRef}>
           <button
             type="button"
             aria-haspopup="listbox"
@@ -314,15 +327,18 @@ export default function WorkspacePage() {
             disabled={busy}
             onClick={() => {
               setTenantOpen((open) => !open);
-              setUserOpen(false);
+              setProfileOpen(false);
             }}
             data-testid="button-workspace-switcher"
           >
-            <span>{tenant.name}</span>
+            <span>
+              <small>Clinic</small>
+              <b>{tenant.name}</b>
+            </span>
             <ChevronDown size={14} />
           </button>
           {tenantOpen ? (
-            <div className="ax-dropdown" role="listbox" aria-label="Select tenant">
+            <div className="ax-dropdown" role="listbox" aria-label="Select clinic">
               {(isAdminRole(user.role) ? tenants : tenants.filter((t) => t.id === tenant.id)).map((item) => (
                 <button
                   key={item.id}
@@ -355,7 +371,7 @@ export default function WorkspacePage() {
                     <b>{item.name}</b>
                     <small>
                       {item.region} · {item.pack}
-                      {!isAdminRole(user.role) ? ' · locked to your JWT' : ''}
+                      {!isAdminRole(user.role) ? ' · locked to your clinic' : ''}
                     </small>
                   </span>
                   {item.id === tenant.id ? <Check size={14} /> : null}
@@ -364,83 +380,15 @@ export default function WorkspacePage() {
             </div>
           ) : null}
         </div>
-        <nav className="ax-sidebar-nav" aria-label="Workspace navigation">
-          {visibleNav.map(({ id, label, icon: Icon }) => (
-            <button
-              type="button"
-              className={`ax-sidebar-item ${view === id ? 'active' : ''}`}
-              key={id}
-              onClick={() => {
-                setView(id);
-                setSidebarOpen(false);
-              }}
-              data-testid={`button-nav-${id}`}
-            >
-              <Icon size={15} />
-              <span>{label}</span>
-            </button>
-          ))}
-        </nav>
-        <div className="ax-sidebar-bottom">
-          <div className={`ax-user-wrap ${userOpen ? 'open' : ''}`} ref={userRef}>
-            <button
-              type="button"
-              className="ax-user"
-              aria-haspopup="menu"
-              aria-expanded={userOpen}
-              onClick={() => {
-                setUserOpen((open) => !open);
-                setTenantOpen(false);
-              }}
-              data-testid="button-user-menu"
-            >
-              <span className="ax-user-avatar">{user.initials}</span>
-              <span>
-                <b>{user.name}</b>
-                <small>
-                  {roleLabel} · {user.title}
-                </small>
-              </span>
-              <ChevronDown size={13} />
-            </button>
-            {userOpen ? (
-              <div className="ax-dropdown ax-dropdown-up" role="menu" aria-label="Account">
-                <div className="ax-dropdown-label">Signed in</div>
-                <div className="ax-dropdown-static">
-                  <b>{user.email}</b>
-                  <small>Role is bound to your JWT — sign out to change identity</small>
-                </div>
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="ax-dropdown-danger"
-                  onClick={async () => {
-                    await logout();
-                    setLocation('/login');
-                  }}
-                  data-testid="button-logout"
-                >
-                  <LogOut size={14} /> Sign out
-                </button>
-              </div>
-            ) : null}
-          </div>
+        <div className="ax-breadcrumb">
+          <span>{currentGroup?.label ?? 'Desk'}</span>
+          <ChevronRight size={13} />
+          <b>{currentPage?.label ?? 'Home'}</b>
         </div>
-      </aside>
-      <div className="ax-main">
-        <header className="ax-topbar">
-          <button className="ax-menu-trigger" type="button" aria-label="Open navigation" onClick={() => setSidebarOpen(true)} data-testid="button-open-sidebar">
-            <Menu size={18} />
-          </button>
-          <div className="ax-breadcrumb">
-            <span>Velora Revenue OS</span>
-            <ChevronRight size={13} />
-            <b>{visibleNav.find((item) => item.id === view)?.label ?? 'Workspace'}</b>
-          </div>
-          <div className="ax-topbar-actions">
-            <span className="ax-status-online">
-              <i /> Live data
-            </span>
+        <div className="ax-topbar-actions">
+          <span className="ax-status-online">
+            <i /> Live
+          </span>
             <div className={`ax-topbar-menu ${notifOpen ? 'open' : ''}`} ref={notifRef}>
               <button
                 className="ax-icon-button"
@@ -557,14 +505,72 @@ export default function WorkspacePage() {
                   >
                     <KeyRound size={14} /> Change password
                   </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="ax-dropdown-danger"
+                    onClick={async () => {
+                      await logout();
+                      setLocation('/login');
+                    }}
+                    data-testid="button-logout"
+                  >
+                    <LogOut size={14} /> Sign out
+                  </button>
                 </div>
               ) : null}
             </div>
           </div>
-        </header>
+      </header>
+
+      <aside className={`ax-sidebar ${sidebarOpen ? 'open' : ''}`}>
+        <div className="ax-sidebar-top">
+          <span className="ax-sidebar-title">Menu</span>
+          <button className="ax-sidebar-close" type="button" aria-label="Close navigation" onClick={() => setSidebarOpen(false)} data-testid="button-close-sidebar">
+            <PanelLeftClose size={16} />
+          </button>
+        </div>
+        <nav className="ax-sidebar-nav" aria-label="Workspace navigation">
+          {visibleGroups.map((group) => {
+            const expanded = openGroups[group.id] !== false;
+            return (
+              <div className="ax-nav-group" key={group.id}>
+                <button
+                  type="button"
+                  className="ax-nav-group-toggle"
+                  aria-expanded={expanded}
+                  onClick={() => setOpenGroups((current) => ({ ...current, [group.id]: !expanded }))}
+                >
+                  <span>{group.label}</span>
+                  <ChevronDown size={13} className={expanded ? 'open' : ''} />
+                </button>
+                {expanded
+                  ? group.items.map(({ id, label, icon: Icon }) => (
+                      <button
+                        type="button"
+                        className={`ax-sidebar-item ${view === id ? 'active' : ''}`}
+                        key={id}
+                        onClick={() => {
+                          setView(id);
+                          setSidebarOpen(false);
+                        }}
+                        data-testid={`button-nav-${id}`}
+                      >
+                        <Icon size={15} />
+                        <span>{label}</span>
+                      </button>
+                    ))
+                  : null}
+              </div>
+            );
+          })}
+        </nav>
+      </aside>
+
+      <div className="ax-main">
         {renderView(view, setView)}
         <footer className="ax-footer">
-          <span className="ax-footer-brand">Velora Revenue OS · Revenue, made accountable.</span>
+          <span className="ax-footer-brand">Velora Desk · money that can be explained.</span>
           <span className="ax-footer-meta">
             {tenant.name} · <b>{roleLabel}</b>
           </span>
