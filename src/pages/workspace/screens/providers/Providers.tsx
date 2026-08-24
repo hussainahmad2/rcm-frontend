@@ -146,8 +146,8 @@ export function Providers() {
   return (
     <div className="ax-view">
       <SectionHeading
-        eyebrow="Network directory"
-        title="Providers"
+        eyebrow="Front desk"
+        title="Clinicians"
         detail={`${list.length} billing and rendering providers · typed identifiers, claim roles`}
       />
       {note ? (
