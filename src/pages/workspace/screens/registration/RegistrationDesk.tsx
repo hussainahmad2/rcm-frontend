@@ -178,8 +178,8 @@ export function RegistrationDesk() {
   return (
     <div className="ax-view">
       <SectionHeading
-        eyebrow="Standalone front desk"
-        title="Registration desk"
+        eyebrow="Front desk"
+        title="Check-in"
         detail="Register a patient, attach coverage, open an encounter, and capture a charge — no EHR required."
       />
       {note ? (
@@ -213,8 +213,8 @@ export function RegistrationDesk() {
                 <input type="date" value={form.dob} onChange={(e) => set('dob', e.target.value)} data-testid="input-reg-dob" />
               </label>
               <label>
-                MRN (optional)
-                <input value={form.mrn} onChange={(e) => set('mrn', e.target.value)} placeholder="Auto-generated if blank" />
+                Chart number (optional)
+                <input value={form.mrn} onChange={(e) => set('mrn', e.target.value)} placeholder="Filled in if you leave this blank" />
               </label>
               <label>
                 Phone
@@ -237,20 +237,20 @@ export function RegistrationDesk() {
           </div>
 
           <div className="ax-reg-column">
-            <h3 className="ax-reg-section-title">Coverage</h3>
+            <h3 className="ax-reg-section-title">Insurance</h3>
             <div className="ax-reg-fields">
               <label>
-                Plan name
-                <input value={form.planName} onChange={(e) => set('planName', e.target.value)} placeholder="Commercial PPO" />
+                Insurance plan
+                <input value={form.planName} onChange={(e) => set('planName', e.target.value)} placeholder="Blue Cross PPO" />
               </label>
               <label>
-                Member ID
+                Insurance member ID
                 <input value={form.memberId} onChange={(e) => set('memberId', e.target.value)} />
               </label>
               <label className="ax-reg-span-2">
-                Existing payer
+                Insurance company
                 <select value={form.payerId} onChange={(e) => set('payerId', e.target.value)}>
-                  <option value="">Create / default</option>
+                  <option value="">Add a new company</option>
                   {(payers.data ?? []).map((p: any) => (
                     <option key={p.id} value={p.id}>
                       {p.name}
@@ -259,17 +259,17 @@ export function RegistrationDesk() {
                 </select>
               </label>
               <label className="ax-reg-span-2">
-                Or new payer name
+                Or type a new company name
                 <input value={form.payerName} onChange={(e) => set('payerName', e.target.value)} />
               </label>
             </div>
           </div>
 
           <div className="ax-reg-column">
-            <h3 className="ax-reg-section-title">Encounter</h3>
+            <h3 className="ax-reg-section-title">Visit</h3>
             <div className="ax-reg-fields">
               <label>
-                Provider
+                Clinician
                 <select value={form.providerId} onChange={(e) => set('providerId', e.target.value)}>
                   <option value="">Default</option>
                   {(providers.data ?? []).map((p: any) => (
@@ -298,10 +298,10 @@ export function RegistrationDesk() {
           </div>
 
           <div className="ax-reg-column">
-            <h3 className="ax-reg-section-title">Charge</h3>
+            <h3 className="ax-reg-section-title">Bill</h3>
             <div className="ax-reg-fields">
               <label>
-                Charge code
+                Bill code
                 <input value={form.code} onChange={(e) => set('code', e.target.value)} />
               </label>
               <label>
@@ -336,7 +336,7 @@ export function RegistrationDesk() {
             onClick={() => register.mutate()}
             data-testid="button-register-visit"
           >
-            {register.isPending ? 'Saving…' : 'Register patient + visit'}
+            {register.isPending ? 'Saving…' : 'Save patient and visit'}
           </button>
         </div>
       </section>
