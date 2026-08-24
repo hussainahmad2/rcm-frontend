@@ -164,9 +164,9 @@ export function WorkQueue() {
   return (
     <div className="ax-view">
       <SectionHeading
-        eyebrow="Human-in-the-loop operations"
-        title="Work queue"
-        detail={`${visible.length} active work items · ranked by value, urgency and confidence`}
+        eyebrow="Today"
+        title="My work"
+        detail={`${visible.length} open items · sorted by money at risk and how soon they are due`}
         action={
           <button className="ax-primary-button" type="button" onClick={() => void workItems.refetch()} data-testid="button-run-prioritization">
             <Sparkles size={14} /> Refresh queue
@@ -179,7 +179,7 @@ export function WorkQueue() {
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search work items, payers or episodes"
+            placeholder="Search tasks, insurance, or visits"
             aria-label="Search work items"
             data-testid="input-work-queue-search"
           />
@@ -344,7 +344,7 @@ export function WorkQueue() {
                   </b>
                 </div>
                 <div>
-                  <span>Payer</span>
+                  <span>Insurance</span>
                   <b>{selected.payer ?? '—'}</b>
                 </div>
                 <div>
