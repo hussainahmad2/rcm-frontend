@@ -134,8 +134,8 @@ export default function LoginPage() {
 
   return (
     <AuthShell
-      title="Operate the cycle with accountable access."
-      body="Short-lived JWT access tokens, httpOnly refresh cookies, MFA, and enterprise SSO protect every workspace route and API call."
+      title="Sign in to the clinic desk."
+      body="Short session tokens, secure cookies, and optional two-factor keep every workspace locked to the right person."
       points={[
         { icon: ShieldCheck, text: 'Access token TTL: 10 minutes' },
         { icon: LockKeyhole, text: 'Refresh token: httpOnly cookie, rotated on use' },
@@ -161,7 +161,7 @@ export default function LoginPage() {
             ? `Enter the 6-digit code for ${mfaPending.email}, or a recovery code.`
             : mfaEnrollPending
               ? `This tenant requires MFA. Enroll an authenticator for ${mfaEnrollPending.email}.`
-              : 'Use your Velora credentials or enterprise SSO.'}
+              : 'Use your work email, or your hospital sign-in.'}
         </p>
       </header>
 
