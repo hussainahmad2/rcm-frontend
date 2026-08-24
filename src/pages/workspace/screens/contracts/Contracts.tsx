@@ -103,8 +103,8 @@ export function Contracts() {
   return (
     <div className="ax-view">
       <SectionHeading
-        eyebrow="Expected vs actual"
-        title="Contracts"
+        eyebrow="Setup"
+        title="Payer contracts"
         detail={`${money(underpaymentTotal)} underpayment variance against contracted expectations.`}
       />
       <div className="ax-metrics">

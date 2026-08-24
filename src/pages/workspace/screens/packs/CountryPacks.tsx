@@ -112,8 +112,8 @@ export function CountryPacks() {
   return (
     <div className="ax-view">
       <SectionHeading
-        eyebrow="Integration hub"
-        title="Country packs"
+        eyebrow="Setup"
+        title="Country settings"
         detail="A pack is a versioned capability contract: identifiers, coding, claim/eligibility/auth/remit interfaces, and certification state. It is not a live payer connection."
       />
       <div className="ax-pack-disclaimer">
@@ -134,8 +134,8 @@ export function CountryPacks() {
         <span className="ax-kicker">Data intake</span>
         <h3 style={{ margin: '6px 0 10px', fontFamily: 'var(--app-font-serif)' }}>How data enters Velora</h3>
         <p style={{ marginTop: 0, maxWidth: 720, color: 'var(--ax-soft)', lineHeight: 1.5 }}>
-          Day-to-day standalone use happens in <b style={{ color: 'var(--ax-ink)' }}>Registration desk</b> — staff enter
-          patients, coverage, encounters, and charges in the UI. No EHR is required.
+          Day-to-day work happens in <b style={{ color: 'var(--ax-ink)' }}>Check-in</b> — staff enter
+          patients, insurance, visits, and bills in the app. No EHR is required.
         </p>
         <p style={{ marginTop: 0, maxWidth: 720, color: 'var(--ax-soft)', lineHeight: 1.5 }}>
           For hospitals that already have an EHR, Velora can also receive clinical data through optional connectors
@@ -144,7 +144,7 @@ export function CountryPacks() {
         <div className="ax-concept-list">
           <span>
             <CheckCircle2 size={14} />
-            Registration desk (standalone)
+            Check-in (this app)
           </span>
           <span>
             <CheckCircle2 size={14} />

@@ -88,8 +88,8 @@ export function Rules() {
   return (
     <div className="ax-view">
       <SectionHeading
-        eyebrow="Policy engine"
-        title="Rules"
+        eyebrow="Setup"
+        title="Billing rules"
         detail="Executable RuleVersions drive claim scrub. Latest effective version per ruleKey is evaluated by layer."
       />
       <section className="ax-panel ax-table-panel">
