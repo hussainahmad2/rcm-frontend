@@ -137,9 +137,9 @@ export function Workforce() {
       <header className={`ax-ai-command ${floor.data?.ok ? 'online' : 'standby'}`}>
         <div className="ax-ai-command-top">
           <div>
-            <span className="ax-kicker">Operations floor</span>
-            <h1>AI workforce</h1>
-            <p>Agents watch every lane of the cash cycle. They prepare work. People approve what changes the record.</p>
+            <span className="ax-kicker">Helpers</span>
+            <h1>AI helpers</h1>
+            <p>These helpers draft the next step. A person still approves anything that changes a record.</p>
           </div>
           <span className="ax-ai-live">
             <i />
