@@ -129,8 +129,8 @@ export function Eligibility() {
   return (
     <div className="ax-view">
       <SectionHeading
-        eyebrow="Patient financial access"
-        title="Eligibility & estimates"
+        eyebrow="Before the visit"
+        title="Coverage check"
         detail="Verify coverage, then estimate patient responsibility before service — Layer 1 of the RCM platform."
       />
       <section className="ax-panel ax-table-panel">

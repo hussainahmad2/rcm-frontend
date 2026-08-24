@@ -101,8 +101,8 @@ export function Authorizations() {
   return (
     <div className="ax-view">
       <SectionHeading
-        eyebrow="Patient financial access"
-        title="Authorizations"
+        eyebrow="Before the visit"
+        title="Prior auths"
         detail="Evaluate auth rules before service. Missing auth creates an AUTH_REQUIRED work item — denial prevented."
       />
       <div className="ax-metrics">
