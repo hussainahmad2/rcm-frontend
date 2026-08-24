@@ -452,8 +452,8 @@ export function Operations() {
   return (
     <div className="ax-view ax-ops">
       <SectionHeading
-        eyebrow="Workspace controls"
-        title="Operations"
+        eyebrow="Setup"
+        title="Settings"
         detail="Organization, people, identity, and compliance — one column, top to bottom."
       />
 
