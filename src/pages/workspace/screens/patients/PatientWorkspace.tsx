@@ -246,15 +246,15 @@ export function PatientWorkspace({
           </div>
           <div className="ax-setting-fields" style={{ marginTop: 12 }}>
             <label>
-              Plan name
+              Insurance plan name
               <input value={coverage.planName} onChange={(e) => setCoverage((c) => ({ ...c, planName: e.target.value }))} />
             </label>
             <label>
-              Member ID
+              Insurance member ID
               <input value={coverage.memberId} onChange={(e) => setCoverage((c) => ({ ...c, memberId: e.target.value }))} />
             </label>
             <label>
-              Payer
+              Insurance company
               <select value={coverage.payerId} onChange={(e) => setCoverage((c) => ({ ...c, payerId: e.target.value }))}>
                 <option value="">New / default</option>
                 {(payers.data ?? []).map((payer: { id: string; name: string }) => (
@@ -265,7 +265,7 @@ export function PatientWorkspace({
               </select>
             </label>
             <label>
-              COB priority
+              Which plan pays first
               <select value={coverage.cobPriority} onChange={(e) => setCoverage((c) => ({ ...c, cobPriority: e.target.value }))}>
                 <option value="1">Primary</option>
                 <option value="2">Secondary</option>

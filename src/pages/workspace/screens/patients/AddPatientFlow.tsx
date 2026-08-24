@@ -82,8 +82,8 @@ export function AddPatientFlow({ onCreated, onCancel }: Props) {
 
   const missing = useMemo(() => {
     const items: string[] = [];
-    if (!form.firstName.trim()) items.push('Legal first name');
-    if (!form.lastName.trim()) items.push('Legal last name');
+    if (!form.firstName.trim()) items.push('First name');
+    if (!form.lastName.trim()) items.push('Last name');
     if (!form.dob) items.push('Date of birth');
     return items;
   }, [form.firstName, form.lastName, form.dob]);
@@ -172,7 +172,7 @@ export function AddPatientFlow({ onCreated, onCancel }: Props) {
         {current.id === 'identity' ? (
           <div className="ax-setting-fields">
             <label>
-              Legal first name *
+              First name *
               <input value={form.firstName} onChange={(e) => set('firstName', e.target.value)} data-testid="input-pat-first" />
             </label>
             <label>
@@ -180,7 +180,7 @@ export function AddPatientFlow({ onCreated, onCancel }: Props) {
               <input value={form.middleName} onChange={(e) => set('middleName', e.target.value)} />
             </label>
             <label>
-              Legal last name *
+              Last name *
               <input value={form.lastName} onChange={(e) => set('lastName', e.target.value)} data-testid="input-pat-last" />
             </label>
             <label>
@@ -188,11 +188,11 @@ export function AddPatientFlow({ onCreated, onCancel }: Props) {
               <input type="date" value={form.dob} onChange={(e) => set('dob', e.target.value)} data-testid="input-pat-dob" />
             </label>
             <label>
-              MRN
-              <input value={form.mrn} onChange={(e) => set('mrn', e.target.value)} placeholder="Auto if blank" />
+              Chart number
+              <input value={form.mrn} onChange={(e) => set('mrn', e.target.value)} placeholder="Filled in if you leave this blank" />
             </label>
             <label>
-              Administrative sex
+              Sex
               <select value={form.sex} onChange={(e) => set('sex', e.target.value)}>
                 <option value="">—</option>
                 <option value="F">Female</option>
@@ -201,20 +201,20 @@ export function AddPatientFlow({ onCreated, onCancel }: Props) {
               </select>
             </label>
             <label>
-              Sex for billing
+              Sex on the claim
               <select value={form.sexForBilling} onChange={(e) => set('sexForBilling', e.target.value)}>
-                <option value="">Same as administrative</option>
+                <option value="">Same as sex</option>
                 <option value="F">Female</option>
                 <option value="M">Male</option>
                 <option value="U">Unknown</option>
               </select>
             </label>
             <label>
-              National ID unavailable reason
+              Why national ID is missing
               <input
                 value={form.nationalIdUnavailableReason}
                 onChange={(e) => set('nationalIdUnavailableReason', e.target.value)}
-                placeholder="Never invent a placeholder ID"
+                placeholder="Leave blank if you have an ID"
               />
             </label>
           </div>
@@ -231,23 +231,23 @@ export function AddPatientFlow({ onCreated, onCancel }: Props) {
               <input value={form.email} onChange={(e) => set('email', e.target.value)} />
             </label>
             <label>
-              Address line 1
+              Street address
               <input value={form.line1} onChange={(e) => set('line1', e.target.value)} />
             </label>
             <label>
-              City / locality
+              City
               <input value={form.locality} onChange={(e) => set('locality', e.target.value)} />
             </label>
             <label>
-              State / province / region
+              State / region
               <input value={form.region} onChange={(e) => set('region', e.target.value)} />
             </label>
             <label>
-              Postal code
+              ZIP / postal code
               <input value={form.postalCode} onChange={(e) => set('postalCode', e.target.value)} />
             </label>
             <label>
-              Preferred language
+              Language
               <input value={form.preferredLocale} onChange={(e) => set('preferredLocale', e.target.value)} />
             </label>
           </div>
@@ -256,17 +256,17 @@ export function AddPatientFlow({ onCreated, onCancel }: Props) {
         {current.id === 'coverage' ? (
           <div className="ax-setting-fields">
             <label>
-              Plan / product
+              Insurance plan name
               <input value={form.planName} onChange={(e) => set('planName', e.target.value)} />
             </label>
             <label>
-              Member ID
+              Insurance member ID
               <input value={form.memberId} onChange={(e) => set('memberId', e.target.value)} />
             </label>
             <label>
-              Existing payer
+              Insurance company
               <select value={form.payerId} onChange={(e) => set('payerId', e.target.value)}>
-                <option value="">Create / default</option>
+                <option value="">Add a new company</option>
                 {(payers.data ?? []).map((payer: { id: string; name: string }) => (
                   <option key={payer.id} value={payer.id}>
                     {payer.name}
@@ -275,11 +275,11 @@ export function AddPatientFlow({ onCreated, onCancel }: Props) {
               </select>
             </label>
             <label>
-              Or new payer name
+              Or type a new company name
               <input value={form.payerName} onChange={(e) => set('payerName', e.target.value)} />
             </label>
             <label>
-              Relationship to subscriber
+              Who holds the policy
               <select value={form.relationshipToSubscriber} onChange={(e) => set('relationshipToSubscriber', e.target.value)}>
                 <option value="SELF">Self</option>
                 <option value="SPOUSE">Spouse</option>
@@ -288,7 +288,7 @@ export function AddPatientFlow({ onCreated, onCancel }: Props) {
               </select>
             </label>
             <label>
-              COB priority
+              Which plan pays first
               <select value={form.cobPriority} onChange={(e) => set('cobPriority', e.target.value)}>
                 <option value="1">Primary</option>
                 <option value="2">Secondary</option>
@@ -302,7 +302,7 @@ export function AddPatientFlow({ onCreated, onCancel }: Props) {
           <div className="ax-consent-stack">
             <label className="ax-check-row">
               <input type="checkbox" checked={form.tpoNotice} onChange={(e) => set('tpoNotice', e.target.checked)} />
-              Treatment / payment / operations notice captured
+              Privacy notice given
             </label>
             <label className="ax-check-row">
               <input
@@ -310,7 +310,7 @@ export function AddPatientFlow({ onCreated, onCancel }: Props) {
                 checked={form.communicationConsent}
                 onChange={(e) => set('communicationConsent', e.target.checked)}
               />
-              Communication consent for SMS / email
+              OK to text or email
             </label>
             <p className="ax-muted">Consent is stored as versioned evidence with purpose — not a silent checkbox on Patient.</p>
           </div>

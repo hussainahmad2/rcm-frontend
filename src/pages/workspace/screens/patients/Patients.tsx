@@ -102,7 +102,7 @@ export function Patients() {
       <SectionHeading
         eyebrow="Practice management"
         title="Patients"
-        detail={`${list.length} patients · search before you create — duplicate records break eligibility, claims, and A/R`}
+        detail={`${list.length} patients · search first so you do not create a duplicate`}
       />
       <section className="ax-panel" style={{ marginBottom: 16 }}>
         <div className="ax-panel-head">
@@ -176,7 +176,7 @@ export function Patients() {
             </div>
             <div className="ax-table-head">
               <span>Patient</span>
-              <span>MRN / market</span>
+              <span>Chart number</span>
               <span>Balance</span>
               <span>Status</span>
             </div>
@@ -215,7 +215,7 @@ export function Patients() {
               <div className="ax-empty">
                 <PanelLeftOpen size={22} />
                 <b>Select a patient</b>
-                <p>Open the financial-access workspace: identity, coverage/COB, claims, and activity.</p>
+                <p>Open the record: identity, insurance, claims, and activity.</p>
               </div>
             ) : (
               <PatientWorkspace patientId={selectedId} />
