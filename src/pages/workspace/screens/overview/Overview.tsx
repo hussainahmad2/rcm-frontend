@@ -77,7 +77,7 @@ import { ErrorState, InsightCard, JobResultPanel, LoadingState, Metric, SectionH
 import { useTenantScope } from '../../shared/use-tenant-scope';
 import './Overview.css';
 
-const CHART_COLORS = ['#2a9d8f', '#1f8fbf', '#1e293b', '#d4a017', '#0ea5e9'];
+const CHART_COLORS = ['#c45c26', '#5b4b8a', '#2f6a4f', '#e0a21a', '#7a5a9e'];
 
 export function Overview({ onNavigate }: { onNavigate: (view: WorkspaceView) => void }) {
   const queryClient = useQueryClient();
@@ -111,7 +111,7 @@ export function Overview({ onNavigate }: { onNavigate: (view: WorkspaceView) => 
     refresh.mutate();
   };
 
-  if (loading) return <div className="ax-view"><LoadingState label="Loading command center…" /></div>;
+  if (loading) return <div className="ax-view"><LoadingState label="Loading home…" /></div>;
   if (error) return <div className="ax-view"><ErrorState error={error} onRetry={refetchAll} /></div>;
 
   const metrics = command.data?.metrics ?? {};
@@ -131,29 +131,29 @@ export function Overview({ onNavigate }: { onNavigate: (view: WorkspaceView) => 
       : Number((value as { amount?: number } | null | undefined)?.amount ?? 0) || 0;
 
   const funnelData = [
-    { stage: 'Charges', amount: amountOf(map.totalCharges) },
-    { stage: 'Billed', amount: amountOf(map.billed) },
-    { stage: 'Outstanding', amount: amountOf(map.outstanding) },
+    { stage: 'Bills', amount: amountOf(map.totalCharges) },
+    { stage: 'Sent to insurance', amount: amountOf(map.billed) },
+    { stage: 'Still unpaid', amount: amountOf(map.outstanding) },
     { stage: 'Paid', amount: amountOf(map.paid) },
   ];
   const riskData = [
-    { name: 'At risk', value: amountOf(metrics.atRisk) },
+    { name: 'Money at risk', value: amountOf(metrics.atRisk) },
     { name: 'Denied', value: amountOf(metrics.denied) },
-    { name: 'Underpay', value: amountOf(metrics.potentialUnderpayment) },
-    { name: 'Unbilled', value: amountOf(metrics.unbilled) },
+    { name: 'Paid too little', value: amountOf(metrics.potentialUnderpayment) },
+    { name: 'Not billed', value: amountOf(metrics.unbilled) },
   ].filter((d) => d.value > 0);
   const kpiData = [
-    { name: 'Clean claim %', value: Number(metrics.cleanClaimRate ?? 0) },
+    { name: 'Accepted first try %', value: Number(metrics.cleanClaimRate ?? 0) },
     { name: 'Denial %', value: Number(metrics.denialRate ?? 0) },
-    { name: 'Days in AR', value: Number(metrics.daysInAr ?? 0) },
+    { name: 'Days unpaid', value: Number(metrics.daysInAr ?? 0) },
   ];
 
   return (
     <div className="ax-view">
       <SectionHeading
-        eyebrow="Network pulse"
-        title="Command center"
-        detail="A single operating picture projected from live claims, charges, and the signed ledger."
+        eyebrow="Today"
+        title="Home"
+        detail="What still needs attention — unpaid bills, denied claims, and work waiting on you."
         action={
           <button
             className="ax-outline-button"
@@ -168,14 +168,14 @@ export function Overview({ onNavigate }: { onNavigate: (view: WorkspaceView) => 
         }
       />
       <div className="ax-metrics">
-        <Metric label="Total AR" value={money(metrics.totalAr ?? 0)} icon={CircleDollarSign} />
-        <Metric label="Expected collection" value={money(metrics.expectedCollection ?? 0)} icon={ArrowUpRight} tone="coral" />
-        <Metric label="At-risk revenue" value={money(metrics.atRisk ?? 0)} icon={ShieldAlert} tone="amber" />
-        <Metric label="Potential underpayment" value={money(metrics.potentialUnderpayment ?? 0)} icon={BadgeDollarSign} tone="blue" />
-        <Metric label="Unbilled revenue" value={money(metrics.unbilled ?? 0)} icon={FileText} />
-        <Metric label="Denied revenue" value={money(metrics.denied ?? 0)} icon={ArrowDownRight} tone="coral" />
-        <Metric label="Clean claim rate" value={`${metrics.cleanClaimRate ?? 0}%`} icon={CheckCircle2} />
-        <Metric label="Days in AR" value={`${metrics.daysInAr ?? 0}`} icon={Clock3} tone="amber" />
+        <Metric label="Unpaid bills" value={money(metrics.totalAr ?? 0)} icon={CircleDollarSign} />
+        <Metric label="Expected to collect" value={money(metrics.expectedCollection ?? 0)} icon={ArrowUpRight} tone="coral" />
+        <Metric label="Money at risk" value={money(metrics.atRisk ?? 0)} icon={ShieldAlert} tone="amber" />
+        <Metric label="Paid too little" value={money(metrics.potentialUnderpayment ?? 0)} icon={BadgeDollarSign} tone="blue" />
+        <Metric label="Not billed yet" value={money(metrics.unbilled ?? 0)} icon={FileText} />
+        <Metric label="Denied claims" value={money(metrics.denied ?? 0)} icon={ArrowDownRight} tone="coral" />
+        <Metric label="Claims accepted first try" value={`${metrics.cleanClaimRate ?? 0}%`} icon={CheckCircle2} />
+        <Metric label="Days waiting to be paid" value={`${metrics.daysInAr ?? 0}`} icon={Clock3} tone="amber" />
         <Metric label="Denial rate" value={`${metrics.denialRate ?? 0}%`} icon={AlertCircle} tone="blue" />
       </div>
       <div className="ax-chart-grid">
@@ -183,7 +183,7 @@ export function Overview({ onNavigate }: { onNavigate: (view: WorkspaceView) => 
           <div className="ax-panel-head">
             <div>
               <span className="ax-kicker">Cash path</span>
-              <h2>Revenue funnel</h2>
+              <h2>How money moves</h2>
             </div>
           </div>
           <div className="ax-chart-frame">
@@ -191,15 +191,15 @@ export function Overview({ onNavigate }: { onNavigate: (view: WorkspaceView) => 
               <AreaChart data={funnelData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="axFunnelFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#2a9d8f" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="#2a9d8f" stopOpacity={0.02} />
+                    <stop offset="0%" stopColor="#c45c26" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="#c45c26" stopOpacity={0.02} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                 <XAxis dataKey="stage" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} axisLine={false} tickLine={false} width={48} />
                 <Tooltip formatter={(value: number) => money(value)} contentStyle={{ borderRadius: 8, border: '1px solid hsl(var(--border))' }} />
-                <Area type="monotone" dataKey="amount" stroke="#2a9d8f" fill="url(#axFunnelFill)" strokeWidth={2} />
+                <Area type="monotone" dataKey="amount" stroke="#c45c26" fill="url(#axFunnelFill)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -207,8 +207,8 @@ export function Overview({ onNavigate }: { onNavigate: (view: WorkspaceView) => 
         <section className="ax-panel ax-chart-panel">
           <div className="ax-panel-head">
             <div>
-              <span className="ax-kicker">Exposure mix</span>
-              <h2>At-risk composition</h2>
+              <span className="ax-kicker">Risk mix</span>
+              <h2>Where money is stuck</h2>
             </div>
           </div>
           <div className="ax-chart-frame ax-chart-split">
@@ -247,7 +247,7 @@ export function Overview({ onNavigate }: { onNavigate: (view: WorkspaceView) => 
                 <XAxis dataKey="name" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} axisLine={false} tickLine={false} width={36} />
                 <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid hsl(var(--border))' }} />
-                <Bar dataKey="value" radius={[6, 6, 0, 0]} fill="#1f8fbf" />
+                <Bar dataKey="value" radius={[6, 6, 0, 0]} fill="#5b4b8a" />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -266,7 +266,7 @@ export function Overview({ onNavigate }: { onNavigate: (view: WorkspaceView) => 
               onClick={() => onNavigate('leakage')}
               data-testid="button-flow-details"
             >
-              Inspect leakage <ArrowUpRight size={14} />
+              Inspect lost money <ArrowUpRight size={14} />
             </button>
           </div>
           <div className="ax-flow">
@@ -357,7 +357,7 @@ export function Overview({ onNavigate }: { onNavigate: (view: WorkspaceView) => 
                 <XAxis dataKey="stage" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} axisLine={false} tickLine={false} width={48} />
                 <Tooltip formatter={(value: number) => money(value)} contentStyle={{ borderRadius: 8, border: '1px solid hsl(var(--border))' }} />
-                <Bar dataKey="amount" radius={[7, 7, 0, 0]} fill="#2a9d8f" />
+                <Bar dataKey="amount" radius={[7, 7, 0, 0]} fill="#c45c26" />
               </BarChart>
             </ResponsiveContainer>
           </div>
