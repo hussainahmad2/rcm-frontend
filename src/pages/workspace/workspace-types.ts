@@ -18,6 +18,8 @@ export type WorkspaceView =
   | 'contracts'
   | 'leakage'
   | 'ai'
+  | 'inbox'
+  | 'billing'
   | 'packs'
   | 'rules'
   | 'settings';

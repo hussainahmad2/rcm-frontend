@@ -5,6 +5,8 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import './Schedule.css';
 
+const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
 function formatLabel(value?: string) {
   if (!value) return '—';
   return value.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
@@ -29,10 +31,22 @@ export function ScheduleBoard() {
   const [reason, setReason] = useState('');
   const [note, setNote] = useState('');
   const [selectedSlot, setSelectedSlot] = useState('');
+  const [hoursForm, setHoursForm] = useState({ weekday: '1', startTime: '09:00', endTime: '17:00' });
+  const [timeOffForm, setTimeOffForm] = useState({ date: '', startTime: '', endTime: '', reason: '' });
 
   const providers = useQuery({ queryKey: ['providers', tenant?.id], queryFn: api.providers });
   const patients = useQuery({ queryKey: ['patients', tenant?.id], queryFn: api.patients });
   const types = useQuery({ queryKey: ['appointment-types', tenant?.id], queryFn: api.appointmentTypes });
+  const schedules = useQuery({
+    queryKey: ['provider-schedules', tenant?.id, providerId],
+    queryFn: () => api.providerSchedules(providerId || undefined),
+    enabled: Boolean(providerId),
+  });
+  const timeOff = useQuery({
+    queryKey: ['provider-time-off', tenant?.id, providerId],
+    queryFn: () => api.providerTimeOff(providerId || undefined),
+    enabled: Boolean(providerId),
+  });
   const appointments = useQuery({
     queryKey: ['appointments', tenant?.id, date, providerId],
     queryFn: () => api.appointments({ date, ...(providerId ? { providerId } : {}) }),
@@ -74,6 +88,38 @@ export function ScheduleBoard() {
     onError: (err: Error) => setNote(err.message),
   });
 
+  const saveHours = useMutation({
+    mutationFn: () =>
+      api.upsertProviderSchedule({
+        providerId,
+        weekday: Number(hoursForm.weekday),
+        startTime: hoursForm.startTime,
+        endTime: hoursForm.endTime,
+      }),
+    onSuccess: (data) => {
+      if (data?.error) return setNote(String(data.error));
+      setNote(`Hours saved · ${WEEKDAYS[Number(hoursForm.weekday)]} ${hoursForm.startTime}–${hoursForm.endTime}`);
+      void queryClient.invalidateQueries({ queryKey: ['provider-schedules'] });
+      void queryClient.invalidateQueries({ queryKey: ['availability'] });
+    },
+  });
+  const addTimeOff = useMutation({
+    mutationFn: () =>
+      api.addProviderTimeOff({
+        providerId,
+        date: timeOffForm.date,
+        startTime: timeOffForm.startTime || undefined,
+        endTime: timeOffForm.endTime || undefined,
+        reason: timeOffForm.reason || 'Time off',
+      }),
+    onSuccess: (data) => {
+      if (data?.error) return setNote(String(data.error));
+      setNote(`Time off recorded for ${timeOffForm.date}`);
+      setTimeOffForm({ date: '', startTime: '', endTime: '', reason: '' });
+      void queryClient.invalidateQueries({ queryKey: ['provider-time-off'] });
+      void queryClient.invalidateQueries({ queryKey: ['availability'] });
+    },
+  });
   const checkIn = useMutation({
     mutationFn: (id: string) => api.checkInAppointment(id),
     onSuccess: (data) => {
@@ -224,6 +270,107 @@ export function ScheduleBoard() {
                   ) : (
                     <small>—</small>
                   )}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+      <div className="ax-schedule-admin">
+        <section className="ax-panel">
+          <div className="ax-panel-head">
+            <div>
+              <span className="ax-kicker">Working hours</span>
+              <h2>{WEEKDAYS[Number(hoursForm.weekday)]} template</h2>
+            </div>
+          </div>
+          <div className="ax-reg-fields">
+            <label>
+              Weekday
+              <select value={hoursForm.weekday} onChange={(e) => setHoursForm((f) => ({ ...f, weekday: e.target.value }))}>
+                {WEEKDAYS.map((label, index) => (
+                  <option key={label} value={String(index)}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Start
+              <input type="time" value={hoursForm.startTime} onChange={(e) => setHoursForm((f) => ({ ...f, startTime: e.target.value }))} />
+            </label>
+            <label>
+              End
+              <input type="time" value={hoursForm.endTime} onChange={(e) => setHoursForm((f) => ({ ...f, endTime: e.target.value }))} />
+            </label>
+          </div>
+          <button className="ax-primary-button" type="button" disabled={!providerId || saveHours.isPending} onClick={() => saveHours.mutate()}>
+            Save hours
+          </button>
+          <div className="ax-hours-list" style={{ marginTop: 12 }}>
+            {(schedules.data ?? []).map((row: any) => (
+              <div className="ax-hours-row" key={row.id}>
+                <b>{WEEKDAYS[row.weekday] ?? row.weekday}</b>
+                <span>
+                  {row.startTime}–{row.endTime}
+                </span>
+                <button
+                  className="ax-ghost-button"
+                  type="button"
+                  onClick={() =>
+                    api.deleteProviderSchedule(row.id).then(() => {
+                      void queryClient.invalidateQueries({ queryKey: ['provider-schedules'] });
+                      void queryClient.invalidateQueries({ queryKey: ['availability'] });
+                    })
+                  }
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+        <section className="ax-panel">
+          <div className="ax-panel-head">
+            <div>
+              <span className="ax-kicker">Time off</span>
+              <h2>Blocks that close the book</h2>
+            </div>
+          </div>
+          <div className="ax-reg-fields">
+            <label>
+              Date
+              <input type="date" value={timeOffForm.date} onChange={(e) => setTimeOffForm((f) => ({ ...f, date: e.target.value }))} />
+            </label>
+            <label>
+              Start
+              <input type="time" value={timeOffForm.startTime} onChange={(e) => setTimeOffForm((f) => ({ ...f, startTime: e.target.value }))} />
+            </label>
+            <label>
+              End
+              <input type="time" value={timeOffForm.endTime} onChange={(e) => setTimeOffForm((f) => ({ ...f, endTime: e.target.value }))} />
+            </label>
+            <label className="ax-reg-span-2">
+              Reason
+              <input value={timeOffForm.reason} onChange={(e) => setTimeOffForm((f) => ({ ...f, reason: e.target.value }))} placeholder="Clinic closed / PTO" />
+            </label>
+          </div>
+          <button
+            className="ax-outline-button"
+            type="button"
+            disabled={!providerId || !timeOffForm.date || addTimeOff.isPending}
+            onClick={() => addTimeOff.mutate()}
+          >
+            Add time off
+          </button>
+          <div className="ax-hours-list" style={{ marginTop: 12 }}>
+            {(timeOff.data ?? []).length === 0 ? <p className="ax-muted">No time-off blocks for this provider.</p> : null}
+            {(timeOff.data ?? []).map((row: any) => (
+              <div className="ax-hours-row" key={row.id}>
+                <b>{row.date}</b>
+                <span>
+                  {row.startTime || 'All day'}
+                  {row.endTime ? `–${row.endTime}` : ''} · {row.reason}
                 </span>
               </div>
             ))}

@@ -97,6 +97,14 @@ export function Denials() {
     mutationFn: (id: string) => api.appealDraft(id),
     onSuccess: setAiResult,
   });
+  const openDemo = useMutation({
+    mutationFn: () => api.openDemoDenial(),
+    onSuccess: (data) => {
+      if (data?.error) return;
+      setSelected(data.denial?.id ?? null);
+      void queryClient.invalidateQueries({ queryKey: ['denials', ws] });
+    },
+  });
 
   if (denials.isLoading) return <div className="ax-view"><LoadingState label="Loading denials…" /></div>;
   if (denials.error) return <div className="ax-view"><ErrorState error={denials.error} onRetry={() => void denials.refetch()} /></div>;
@@ -115,6 +123,11 @@ export function Denials() {
         eyebrow="Recovery + prevention"
         title="Denials & appeals"
         detail="Analyze root cause → write Denial Knowledge Base entry → promote executable scrub RuleVersion so the next claim is blocked before submission."
+        action={
+          <button className="ax-outline-button" type="button" disabled={openDemo.isPending} onClick={() => openDemo.mutate()}>
+            {openDemo.isPending ? 'Opening…' : 'Open demo case'}
+          </button>
+        }
       />
       <div className="ax-denial-summary">
         <div>
@@ -139,6 +152,16 @@ export function Denials() {
         </div>
       </div>
       <div className="ax-denial-grid">
+        {list.length === 0 ? (
+          <div className="ax-empty">
+            <ShieldAlert size={22} />
+            <b>No denial cases yet</b>
+            <p>Adjudication only opens a case when denial risk is high. Open a demo case to walk analyze → prevent → appeal.</p>
+            <button className="ax-primary-button" type="button" disabled={openDemo.isPending} onClick={() => openDemo.mutate()}>
+              Open demo case
+            </button>
+          </div>
+        ) : null}
         {list.map((denial: any) => {
           const probability = Math.round((denial.recoveryProbability ?? 0) * 100);
           const tone = probability >= 75 ? 'teal' : probability >= 50 ? 'amber' : 'coral';

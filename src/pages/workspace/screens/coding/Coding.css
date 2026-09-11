@@ -1,2 +1,37 @@
 /* coding screen styles. Shared chrome/buttons/panels stay in WorkspacePage.css (workspace shell). */
 
+.ax-coding-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(140px, 0.6fr);
+  gap: 10px;
+}
+
+.ax-coding-search label,
+.ax-coding-search input,
+.ax-coding-search select {
+  width: 100%;
+}
+
+.ax-coding-results {
+  display: grid;
+  gap: 6px;
+}
+
+.ax-coding-results button {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+  text-align: left;
+  padding: 8px 10px;
+  border: 1px solid var(--ax-border);
+  border-radius: 10px;
+  background: var(--ax-card);
+}
+
+.ax-modifier-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+

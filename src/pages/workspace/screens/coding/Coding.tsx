@@ -77,10 +77,34 @@ import { ErrorState, InsightCard, JobResultPanel, LoadingState, Metric, SectionH
 import { useTenantScope } from '../../shared/use-tenant-scope';
 import './Coding.css';
 
+type WorkCode = { code: string; description: string; kind: 'DX' | 'PX'; modifiers: string[] };
+
+const MODIFIERS = ['25', '59', 'LT', 'RT', '50', '76', '77', '91', '26', 'TC'];
+
+function toWorkCodes(result: any): WorkCode[] {
+  return [
+    ...(result?.suggestions?.diagnoses ?? []).map((row: any) => ({
+      code: row.code,
+      description: row.description ?? row.code,
+      kind: 'DX' as const,
+      modifiers: [] as string[],
+    })),
+    ...(result?.suggestions?.procedures ?? []).map((row: any) => ({
+      code: row.code,
+      description: row.description ?? row.code,
+      kind: 'PX' as const,
+      modifiers: [] as string[],
+    })),
+  ];
+}
+
 export function Coding() {
   const queryClient = useQueryClient();
   const [result, setResult] = useState<any>(null);
   const [decisionNote, setDecisionNote] = useState('');
+  const [workCodes, setWorkCodes] = useState<WorkCode[]>([]);
+  const [search, setSearch] = useState('');
+  const [system, setSystem] = useState('');
   const encounters = useQuery({ queryKey: ['encounters'], queryFn: api.encounters });
   const encounterList = encounters.data ?? [];
   const [encounterId, setEncounterId] = useState('');
@@ -89,26 +113,40 @@ export function Coding() {
     if (!encounterId && encounterList[0]?.id) setEncounterId(encounterList[0].id);
   }, [encounterId, encounterList]);
 
+  const catalog = useQuery({
+    queryKey: ['coding-codes', search, system],
+    queryFn: () => api.searchCodes(search, system || undefined),
+    enabled: search.trim().length >= 1,
+  });
+
   const suggest = useMutation({
     mutationFn: (id: string) => api.codingSuggest(id),
     onSuccess: (data) => {
       setResult(data);
+      setWorkCodes(toWorkCodes(data));
       setDecisionNote('');
     },
   });
   const decide = useMutation({
     mutationFn: (decision: 'ACCEPT' | 'MODIFY' | 'REJECT') =>
       api.codingDecision({
-        encounterId: result?.encounterId ?? encounterId,
+        encounterId,
         decision,
-        codes: [
-          ...(result?.suggestions?.diagnoses ?? []).map((d: any) => d.code),
-          ...(result?.suggestions?.procedures ?? []).map((p: any) => p.code),
-        ],
-        reason: `Operator ${decision.toLowerCase()} on coding suggestions`,
+        codes: workCodes.map((row) => row.code),
+        modifiers: [...new Set(workCodes.flatMap((row) => row.modifiers))],
+        procedureModifiers: Object.fromEntries(
+          workCodes.filter((row) => row.kind === 'PX' && row.modifiers.length).map((row) => [row.code, row.modifiers]),
+        ),
+        reason: `Operator ${decision.toLowerCase()} on coding workbench`,
       }),
     onSuccess: (data, decision) => {
-      setDecisionNote(`${formatLabel(decision)} recorded for encounter ${data.encounterId}`);
+      setDecisionNote(
+        `${formatLabel(decision)} recorded for encounter ${data.encounterId}${
+          workCodes.some((row) => row.modifiers.length)
+            ? ` · modifiers ${[...new Set(workCodes.flatMap((row) => row.modifiers))].join(', ')}`
+            : ''
+        }`,
+      );
       void queryClient.invalidateQueries({ queryKey: ['audit'] });
       void queryClient.invalidateQueries({ queryKey: ['encounters'] });
       if (result?.ai?.id) {
@@ -117,6 +155,34 @@ export function Coding() {
     },
     onError: (error) => setDecisionNote((error as Error).message),
   });
+
+  const addCode = (row: any) => {
+    if (workCodes.some((item) => item.code === row.code)) return;
+    setWorkCodes((current) => [
+      ...current,
+      {
+        code: row.code,
+        description: row.description ?? row.code,
+        kind: row.kind === 'PX' || /^\d/.test(row.code) ? 'PX' : 'DX',
+        modifiers: [],
+      },
+    ]);
+  };
+
+  const removeCode = (code: string) => setWorkCodes((current) => current.filter((row) => row.code !== code));
+  const toggleModifier = (code: string, modifier: string) =>
+    setWorkCodes((current) =>
+      current.map((row) =>
+        row.code !== code
+          ? row
+          : {
+              ...row,
+              modifiers: row.modifiers.includes(modifier)
+                ? row.modifiers.filter((item) => item !== modifier)
+                : [...row.modifiers, modifier],
+            },
+      ),
+    );
 
   const codingInsight =
     resolveJobInsight(result) ||
@@ -192,64 +258,103 @@ export function Coding() {
           <span>{decisionNote}</span>
         </div>
       ) : null}
-      {!result && !suggest.isPending && !suggest.isError ? (
-        <div className="ax-empty">
-          <Stethoscope size={22} />
-          <b>Ready for coding assist</b>
-          <p>Select an encounter and run suggestions to review diagnoses, procedures, and AI guidance.</p>
-        </div>
-      ) : null}
       {suggest.isPending ? <LoadingState label="Generating coding suggestions…" /> : null}
-      {result ? (
-        <div className="ax-coding-layout">
+      <div className="ax-coding-layout">
           <section className="ax-panel ax-coding-suggestions">
             <div className="ax-panel-head">
               <div>
-                <span className="ax-kicker">Suggested codes</span>
-                <h2>Encounter {result.encounterId}</h2>
+                <span className="ax-kicker">Coder workbench</span>
+                <h2>Encounter {encounterId || '—'}</h2>
               </div>
-              <StatusPill tone="teal">{asPercent(result.ai?.confidence)}% confidence</StatusPill>
+              {result?.ai?.confidence != null ? (
+                <StatusPill tone="teal">{asPercent(result.ai.confidence)}% confidence</StatusPill>
+              ) : (
+                <StatusPill tone="blue">Search or suggest</StatusPill>
+              )}
             </div>
 
+            <div className="ax-coding-search">
+              <label>
+                Search ICD / CPT
+                <input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="M17.11, 99214, knee, office visit"
+                  data-testid="input-coding-search"
+                />
+              </label>
+              <label>
+                System
+                <select value={system} onChange={(event) => setSystem(event.target.value)}>
+                  <option value="">All</option>
+                  <option value="ICD">ICD-10-CM</option>
+                  <option value="CPT">CPT</option>
+                </select>
+              </label>
+            </div>
+            {search.trim() && (catalog.data?.results ?? []).length ? (
+              <div className="ax-coding-results">
+                {(catalog.data.results as any[]).slice(0, 8).map((row) => (
+                  <button type="button" key={`${row.system}-${row.code}`} onClick={() => addCode(row)}>
+                    <b>{row.code}</b>
+                    <small>{row.description}</small>
+                    <span>{row.kind ?? row.system}</span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
             <div className="ax-coding-group">
-              <h3>Diagnoses</h3>
+              <h3>Working diagnoses</h3>
               <div className="ax-coding-cards">
-                {(result.suggestions?.diagnoses ?? []).map((dx: any) => (
+                {workCodes.filter((row) => row.kind === 'DX').map((dx) => (
                   <article className="ax-coding-card" key={dx.code}>
                     <div className="ax-coding-card-top">
                       <span className="ax-coding-badge dx">DX</span>
-                      <StatusPill tone="teal">{asPercent(dx.confidence)}%</StatusPill>
+                      <button className="ax-ghost-button" type="button" onClick={() => removeCode(dx.code)}>
+                        Remove
+                      </button>
                     </div>
                     <strong>{dx.code}</strong>
                     <p>{dx.description}</p>
-                    <div className="ax-coding-meter">
-                      <i style={{ width: `${asPercent(dx.confidence)}%` }} />
-                    </div>
                   </article>
                 ))}
+                {workCodes.every((row) => row.kind !== 'DX') ? <p className="ax-muted">Search and add an ICD code.</p> : null}
               </div>
             </div>
 
             <div className="ax-coding-group">
-              <h3>Procedures</h3>
+              <h3>Working procedures</h3>
               <div className="ax-coding-cards">
-                {(result.suggestions?.procedures ?? []).map((px: any) => (
+                {workCodes.filter((row) => row.kind === 'PX').map((px) => (
                   <article className="ax-coding-card" key={px.code}>
                     <div className="ax-coding-card-top">
                       <span className="ax-coding-badge px">PX</span>
-                      <StatusPill tone="blue">{asPercent(px.confidence)}%</StatusPill>
+                      <button className="ax-ghost-button" type="button" onClick={() => removeCode(px.code)}>
+                        Remove
+                      </button>
                     </div>
                     <strong>{px.code}</strong>
                     <p>{px.description}</p>
-                    <div className="ax-coding-meter">
-                      <i style={{ width: `${asPercent(px.confidence)}%` }} />
+                    <div className="ax-modifier-row">
+                      {MODIFIERS.map((modifier) => (
+                        <button
+                          key={modifier}
+                          type="button"
+                          className={px.modifiers.includes(modifier) ? 'ax-filter-active' : 'ax-outline-button'}
+                          onClick={() => toggleModifier(px.code, modifier)}
+                        >
+                          {modifier}
+                        </button>
+                      ))}
                     </div>
                   </article>
                 ))}
+                {workCodes.every((row) => row.kind !== 'PX') ? <p className="ax-muted">Search and add a CPT code.</p> : null}
               </div>
             </div>
 
-            {(result.warnings ?? []).length ? (
+            {(result?.warnings ?? []).length ? (
               <div className="ax-coding-warnings">
                 <span className="ax-kicker">Warnings</span>
                 <div className="ax-concept-list">
@@ -267,7 +372,7 @@ export function Coding() {
               <button
                 className="ax-primary-button"
                 type="button"
-                disabled={decide.isPending}
+                disabled={decide.isPending || !encounterId || workCodes.length === 0}
                 onClick={() => decide.mutate('ACCEPT')}
                 data-testid="button-coding-accept"
               >
@@ -276,7 +381,7 @@ export function Coding() {
               <button
                 className="ax-outline-button"
                 type="button"
-                disabled={decide.isPending}
+                disabled={decide.isPending || !encounterId || workCodes.length === 0}
                 onClick={() => decide.mutate('MODIFY')}
                 data-testid="button-coding-modify"
               >
@@ -285,7 +390,7 @@ export function Coding() {
               <button
                 className="ax-outline-button"
                 type="button"
-                disabled={decide.isPending}
+                disabled={decide.isPending || !encounterId}
                 onClick={() => decide.mutate('REJECT')}
                 data-testid="button-coding-reject"
               >
@@ -294,17 +399,26 @@ export function Coding() {
             </div>
           </section>
 
-          <JobResultPanel
-            kicker="AI coding review"
-            title={`Coding assist · ${result.encounterId}`}
-            subtitle={result.offline ? 'Rules fallback narrative' : `Model ${result.ai?.model ?? 'assist'}`}
-            insight={codingInsight}
-            confidence={result.ai?.confidence}
-            offline={result.offline}
-            badges={<StatusPill tone="blue">Human review</StatusPill>}
-          />
+          {result ? (
+            <JobResultPanel
+              kicker="AI coding review"
+              title={`Coding assist · ${result.encounterId}`}
+              subtitle={result.offline ? 'Rules fallback narrative' : `Model ${result.ai?.model ?? 'assist'}`}
+              insight={codingInsight}
+              confidence={result.ai?.confidence}
+              offline={result.offline}
+              badges={<StatusPill tone="blue">Human review</StatusPill>}
+            />
+          ) : (
+            <div className="ax-panel">
+              <div className="ax-empty">
+                <Stethoscope size={22} />
+                <b>Search or suggest</b>
+                <p>Add ICD/CPT codes from search, attach modifiers, then accept. Suggest fills a starting set from the encounter.</p>
+              </div>
+            </div>
+          )}
         </div>
-      ) : null}
     </div>
   );
 }

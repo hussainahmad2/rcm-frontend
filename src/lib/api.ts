@@ -460,6 +460,7 @@ export const api = {
     request<any>('/intelligence/refresh', { method: 'POST', body: '{}', timeoutMs: 12_000 }),
   agents: () => request<any[]>('/ai/agents'),
   aiFloor: () => request<any>('/ai/floor', { timeoutMs: 8_000 }),
+  aiAllowlist: () => request<any>('/ai/allowlist'),
   aiHealth: () => request<any>('/ai/health', { timeoutMs: 8_000 }),
   aiCopilot: () => request<any>('/ai/copilot', { timeoutMs: 8_000 }),
   runAgent: (agentId: string, body?: Record<string, string>) =>
@@ -575,12 +576,22 @@ export const api = {
     request<any>('/estimates', { method: 'POST', body: JSON.stringify(body) }),
   eligibilityCheck: (coverageId: string) =>
     request('/eligibility/check', { method: 'POST', body: JSON.stringify({ coverageId }) }),
+  codingSystems: () => request<any>('/coding/systems'),
+  searchCodes: (q?: string, system?: string) => {
+    const params = new URLSearchParams();
+    if (q) params.set('q', q);
+    if (system) params.set('system', system);
+    const qs = params.toString();
+    return request<any>(`/coding/codes${qs ? `?${qs}` : ''}`);
+  },
   codingSuggest: (encounterId: string) =>
     request('/coding/suggest', { method: 'POST', body: JSON.stringify({ encounterId }) }),
   codingDecision: (body: {
     encounterId: string;
     decision: 'ACCEPT' | 'MODIFY' | 'REJECT';
     codes?: string[];
+    modifiers?: string[];
+    procedureModifiers?: Record<string, string[]>;
     reason?: string;
   }) => request<any>('/coding/decision', { method: 'POST', body: JSON.stringify(body) }),
   captureCharges: (encounterId: string) =>
@@ -620,6 +631,17 @@ export const api = {
   eraRemittances: () => request<any[]>('/era/remittances'),
   eraIngest: (body: Record<string, unknown>) =>
     request<any>('/era/ingest', { method: 'POST', body: JSON.stringify(body) }),
+  eraDemo: (claimId?: string) =>
+    request<any>(claimId ? `/era/demo/${encodeURIComponent(claimId)}` : '/era/demo', {
+      method: 'POST',
+      body: '{}',
+    }),
+  openDemoDenial: (claimId?: string) =>
+    request<any>('/denials/demo', { method: 'POST', body: JSON.stringify(claimId ? { claimId } : {}) }),
+  providerTimeOff: (providerId?: string) =>
+    request<any[]>(
+      providerId ? `/provider-time-off?providerId=${encodeURIComponent(providerId)}` : '/provider-time-off',
+    ),
   audit: () => request<any[]>('/audit'),
   rules: () => request<any[]>('/rules'),
   coverages: () => request<any[]>('/coverages'),

@@ -110,6 +110,17 @@ export function Payments() {
       void queryClient.invalidateQueries({ queryKey: ['command-center'] });
     },
   });
+  const ingestDemo = useMutation({
+    mutationFn: () => api.eraDemo(),
+    onSuccess: (data) => {
+      if (data?.error) return setNote(String(data.error));
+      setNote(`Demo ERA posted for ${data.claim?.claimNumber ?? data.remittance?.remittanceNumber ?? 'claim'}`);
+      void queryClient.invalidateQueries({ queryKey: ['payments'] });
+      void queryClient.invalidateQueries({ queryKey: ['claims'] });
+      void queryClient.invalidateQueries({ queryKey: ['patient-billing'] });
+    },
+    onError: (error: Error) => setNote(error.message),
+  });
   const bankRec = useMutation({
     mutationFn: (id: string) => api.reconcileBank(id),
     onSuccess: (data) => {
@@ -134,6 +145,11 @@ export function Payments() {
         eyebrow="Reimbursement"
         title="ERA posting & payments"
         detail="Ledger-posted remittances, bank rec, contract variance, refunds, and payer recoupments. Money is never edited in place."
+        action={
+          <button className="ax-primary-button" type="button" disabled={ingestDemo.isPending} onClick={() => ingestDemo.mutate()}>
+            {ingestDemo.isPending ? 'Posting…' : 'Ingest demo ERA'}
+          </button>
+        }
       />
       {note ? (
         <div className="ax-insight-strip">
@@ -160,7 +176,10 @@ export function Payments() {
               <div className="ax-empty" style={{ padding: '1.25rem' }}>
                 <Receipt size={18} />
                 <b>No remittances yet</b>
-                <p>ERA files post here when remittance is ingested through the payment gateway.</p>
+                <p>This screen stays empty until a remit lands. Ingest a demo ERA against the first eligible claim to see posting, bank rec, and contract check.</p>
+                <button className="ax-primary-button" type="button" disabled={ingestDemo.isPending} onClick={() => ingestDemo.mutate()}>
+                  Ingest demo ERA
+                </button>
               </div>
             ) : (
               remittances.map((remit: any) => (
@@ -195,6 +214,13 @@ export function Payments() {
             </div>
           </div>
           <div className="ax-claims-table">
+            {paymentRows.length === 0 ? (
+              <div className="ax-empty" style={{ padding: '1.25rem' }}>
+                <BadgeDollarSign size={18} />
+                <b>No postings yet</b>
+                <p>Refund and contract-check actions appear after an ERA posts a payment line.</p>
+              </div>
+            ) : null}
             {paymentRows.map((payment: any) => {
               const checked = checkByPayment[payment.id];
               return (

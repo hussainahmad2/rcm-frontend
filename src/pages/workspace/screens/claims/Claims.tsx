@@ -82,6 +82,7 @@ export function Claims() {
   const [selectedId, setSelectedId] = useState<string>('');
   const [actionNote, setActionNote] = useState<string>('');
   const [lastScrub, setLastScrub] = useState<any>(null);
+  const [statusFilter, setStatusFilter] = useState('ALL');
   const claims = useQuery({ queryKey: ['claims'], queryFn: api.claims });
   const detail = useQuery({
     queryKey: ['claim', selectedId],
@@ -133,6 +134,17 @@ export function Claims() {
     },
     onError: (error) => setActionNote((error as Error).message),
   });
+  const freeze = useMutation({
+    mutationFn: (id: string) => api.freezeClaim(id),
+    onSuccess: (data, id) => {
+      if (data?.error) return setActionNote(String(data.error));
+      setActionNote(`Frozen ${id} as v${data.version?.versionNumber ?? data.claim?.currentVersionNumber ?? '—'}`);
+      setSelectedId(id);
+      void queryClient.invalidateQueries({ queryKey: ['claims'] });
+      void queryClient.invalidateQueries({ queryKey: ['claim', id] });
+    },
+    onError: (error) => setActionNote((error as Error).message),
+  });
   const adjudicate = useMutation({
     mutationFn: (id: string) => api.adjudicateClaim(id),
     onSuccess: (data, id) => {
@@ -153,8 +165,11 @@ export function Claims() {
   if (claims.isLoading) return <div className="ax-view"><LoadingState label="Loading claims…" /></div>;
   if (claims.error) return <div className="ax-view"><ErrorState error={claims.error} onRetry={() => void claims.refetch()} /></div>;
 
-  const list = claims.data ?? [];
+  const inventory = claims.data ?? [];
+  const list = statusFilter === 'ALL' ? inventory : inventory.filter((claim: any) => claim.status === statusFilter);
   const total = list.reduce((sum: number, claim: any) => sum + (claim.grossAmount?.amount ?? 0), 0);
+  const statusFilters = ['ALL', ...Array.from(new Set(inventory.map((claim: any) => claim.status).filter(Boolean)))] as string[];
+  const isFrozen = (claim: any) => Boolean(claim.frozen || claim.currentVersionNumber || claim.frozenVersion);
   const claimDetail = detail.data?.claim;
   const events = detail.data?.events ?? [];
   const validations = detail.data?.validations ?? [];
@@ -191,24 +206,31 @@ export function Claims() {
               </h2>
             </div>
             <div className="ax-inline-controls">
-              <button className="ax-filter-active" type="button" data-testid="button-claims-quality-filter">
-                <CheckCircle2 size={14} /> Quality view
-              </button>
+              {statusFilters.map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={statusFilter === value ? 'ax-filter-active' : 'ax-outline-button'}
+                  onClick={() => setStatusFilter(value)}
+                  data-testid={value === 'ALL' ? 'button-claims-quality-filter' : undefined}
+                >
+                  {formatLabel(value)}
+                </button>
+              ))}
             </div>
           </div>
-          <div className="ax-claims-table">
+          <div className="ax-claims-table ax-claims-gate-table">
             <div className="ax-table-head">
               <span>Claim</span>
-              <span>Market</span>
               <span>Amount</span>
-              <span>Quality</span>
-              <span>Risk</span>
               <span>Status</span>
+              <span>Transmission</span>
+              <span>Payer</span>
+              <span>Frozen</span>
               <span>Actions</span>
             </div>
             {list.map((claim: any) => {
-              const score = claim.qualityScore ?? 0;
-              const risk = claim.denialProbability >= 0.7 ? 'High' : claim.denialProbability >= 0.4 ? 'Medium' : 'Low';
+              const frozen = isFrozen(claim);
               return (
                 <div
                   className={`ax-claim-row ${selectedId === claim.id ? 'selected' : ''}`}
@@ -223,20 +245,14 @@ export function Claims() {
                 >
                   <span>
                     <b>{claim.claimNumber ?? claim.id}</b>
-                    <small>{claim.id}</small>
-                  </span>
-                  <span>
-                    <b>{claim.countryId}</b>
-                    <small>{claim.claimType}</small>
+                    <small>{claim.countryId} · {claim.claimType}</small>
                   </span>
                   <strong>{money(claim.grossAmount ?? 0)}</strong>
-                  <span className="ax-score">
-                    <i style={{ width: `${score}%` }} />
-                    <b>{score}</b>
-                  </span>
-                  <StatusPill tone={risk === 'High' ? 'coral' : risk === 'Medium' ? 'amber' : 'teal'}>{risk}</StatusPill>
                   <StatusPill tone={statusTone(claim.status)}>{formatLabel(claim.status)}</StatusPill>
-                  <span style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                  <small>{formatLabel(claim.transmissionStatus)}</small>
+                  <small>{formatLabel(claim.payerStatus)}</small>
+                  <StatusPill tone={frozen ? 'teal' : 'amber'}>{frozen ? `v${claim.frozenVersion || claim.currentVersionNumber}` : 'Open'}</StatusPill>
+                  <span className="ax-row-actions">
                     <button
                       className="ax-outline-button"
                       type="button"
@@ -250,9 +266,21 @@ export function Claims() {
                       Scrub
                     </button>
                     <button
+                      className="ax-outline-button"
+                      type="button"
+                      disabled={freeze.isPending || frozen}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        freeze.mutate(claim.id);
+                      }}
+                    >
+                      Freeze
+                    </button>
+                    <button
                       className="ax-primary-button"
                       type="button"
-                      disabled={submit.isPending || claim.status !== 'READY'}
+                      disabled={submit.isPending || claim.status !== 'READY' || !frozen}
+                      title={claim.status !== 'READY' ? 'Scrub until READY' : frozen ? 'Submit frozen claim' : 'Freeze before submit'}
                       onClick={(event) => {
                         event.stopPropagation();
                         submit.mutate(claim.id);

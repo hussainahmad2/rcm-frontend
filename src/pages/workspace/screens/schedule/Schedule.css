@@ -1,1 +1,27 @@
 /* Schedule screen. Shared chrome stays in WorkspacePage.css. */
+
+.ax-schedule-admin {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.ax-hours-list,
+.ax-hours-row {
+  display: grid;
+  gap: 8px;
+}
+
+.ax-hours-row {
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  padding: 8px 0;
+  border-top: 1px solid var(--ax-border);
+}
+
+@media (max-width: 900px) {
+  .ax-schedule-admin {
+    grid-template-columns: 1fr;
+  }
+}

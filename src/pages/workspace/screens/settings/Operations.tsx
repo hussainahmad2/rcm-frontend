@@ -96,7 +96,7 @@ export function opsError(error: unknown) {
 const STAFF_ROLES = ['admin', 'operator', 'coder', 'biller', 'viewer'] as const;
 type StaffRole = (typeof STAFF_ROLES)[number];
 
-export function Operations() {
+export function Operations({ onNavigate }: { onNavigate?: (view: import('../../workspace-types').WorkspaceView) => void }) {
   const { user, refreshProfile } = useAuth();
   const queryClient = useQueryClient();
   const audit = useQuery({ queryKey: ['audit'], queryFn: api.audit });
@@ -1413,7 +1413,14 @@ export function Operations() {
             <span className="ax-kicker">Integrations</span>
             <h2>Message center</h2>
           </div>
-          <StatusPill tone={inboxRows.length ? 'amber' : 'neutral'}>{inboxRows.length} messages</StatusPill>
+          <div className="ax-inline-controls">
+            <StatusPill tone={inboxRows.length ? 'amber' : 'neutral'}>{inboxRows.length} messages</StatusPill>
+            {onNavigate ? (
+              <button className="ax-outline-button" type="button" onClick={() => onNavigate('inbox')}>
+                Open inbox
+              </button>
+            ) : null}
+          </div>
         </div>
         {inboxRows.length ? (
           <div className="ax-claims-table">

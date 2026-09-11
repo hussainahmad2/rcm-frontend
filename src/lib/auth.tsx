@@ -25,8 +25,8 @@ export function isAdminRole(role?: string | null): boolean {
 
 const ADMIN_VIEWS: WorkspaceView[] = [
   'overview', 'queue', 'registration', 'patients', 'schedule', 'providers', 'payers', 'eligibility', 'authorizations',
-  'encounters', 'coding', 'charges', 'claims', 'denials', 'ar', 'payments', 'contracts', 'leakage',
-  'ai', 'packs', 'rules', 'settings',
+  'encounters', 'coding', 'charges', 'claims', 'denials', 'ar', 'billing', 'payments', 'contracts', 'leakage',
+  'ai', 'inbox', 'packs', 'rules', 'settings',
 ];
 
 const ROLE_VIEWS: Record<RoleId, WorkspaceView[]> = {
@@ -34,16 +34,16 @@ const ROLE_VIEWS: Record<RoleId, WorkspaceView[]> = {
   admin: ADMIN_VIEWS,
   operator: [
     'overview', 'queue', 'registration', 'patients', 'schedule', 'providers', 'payers', 'eligibility', 'authorizations',
-    'encounters', 'coding', 'charges', 'claims', 'denials', 'ar', 'payments', 'leakage', 'ai', 'settings',
+    'encounters', 'coding', 'charges', 'claims', 'denials', 'ar', 'billing', 'payments', 'leakage', 'ai', 'inbox', 'settings',
   ],
   coder: [
-    'overview', 'queue', 'registration', 'patients', 'schedule', 'providers', 'encounters', 'coding', 'charges', 'claims', 'authorizations', 'ai',
+    'overview', 'queue', 'registration', 'patients', 'schedule', 'providers', 'encounters', 'coding', 'charges', 'claims', 'authorizations', 'ai', 'inbox',
   ],
   biller: [
-    'overview', 'queue', 'registration', 'patients', 'schedule', 'payers', 'eligibility', 'encounters', 'charges', 'claims', 'denials', 'ar', 'payments', 'contracts', 'leakage',
+    'overview', 'queue', 'registration', 'patients', 'schedule', 'payers', 'eligibility', 'encounters', 'charges', 'claims', 'denials', 'ar', 'billing', 'payments', 'contracts', 'leakage', 'inbox',
   ],
   viewer: [
-    'overview', 'patients', 'schedule', 'providers', 'payers', 'encounters', 'claims', 'denials', 'ar', 'payments', 'leakage', 'packs',
+    'overview', 'patients', 'schedule', 'providers', 'payers', 'encounters', 'claims', 'denials', 'ar', 'billing', 'payments', 'leakage', 'packs',
   ],
 };
 

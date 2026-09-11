@@ -90,6 +90,7 @@ export function Workforce() {
     refetchInterval: 10_000,
     retry: 1,
   });
+  const allowlist = useQuery({ queryKey: ['ai-allowlist'], queryFn: api.aiAllowlist });
 
   const run = useMutation({
     mutationFn: (agentId: string) => api.runAgent(agentId),
@@ -140,6 +141,13 @@ export function Workforce() {
             <span className="ax-kicker">Operations floor</span>
             <h1>AI workforce</h1>
             <p>Agents watch every lane of the cash cycle. They prepare work. People approve what changes the record.</p>
+            <p className="ax-muted">
+              Human-only:{' '}
+              {(allowlist.data?.forbidden as string[] | undefined)?.length
+                ? (allowlist.data.forbidden as string[]).map((tool) => tool.replace('.', ' ')).join(' · ')
+                : 'claim submit · payment refund · auth approve · user admin'}
+              .
+            </p>
           </div>
           <span className="ax-ai-live">
             <i />
