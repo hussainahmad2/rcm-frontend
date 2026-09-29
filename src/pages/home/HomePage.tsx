@@ -84,10 +84,10 @@ function HeroDashboard() {
             <span className="room-live"><span className="live-dot" /> Signal live</span>
           </div>
           <div className="room-stats">
-            <div className="room-stat"><small>At-risk revenue</small><strong>$2.84m <span>↓ 8.6%</span></strong></div>
-            <div className="room-stat"><small>Clean claim rate</small><strong>94.7% <span>↑ 2.1%</span></strong></div>
-            <div className="room-stat"><small>Open signals</small><strong>1,284 <span>+ 73</span></strong></div>
-            <div className="room-stat"><small>Days to cash</small><strong>31.4 <span>↓ 4.2d</span></strong></div>
+            <div className="room-stat"><small>Focus metric</small><strong>Clean claim rate</strong><span className="stat-note">Measured in your pilot workspace</span></div>
+            <div className="room-stat"><small>Focus metric</small><strong>Denial rate</strong><span className="stat-note">Tracked after live ERA posting</span></div>
+            <div className="room-stat"><small>Focus metric</small><strong>Days in A/R</strong><span className="stat-note">From claim submit to cash</span></div>
+            <div className="room-stat"><small>Focus metric</small><strong>Net collection</strong><span className="stat-note">Ledger-projected in command center</span></div>
           </div>
           <div className="room-grid">
             <div className="room-panel">
