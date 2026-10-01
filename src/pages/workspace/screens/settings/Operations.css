@@ -1,17 +1,171 @@
-/* settings screen styles. Shared chrome/buttons/panels stay in WorkspacePage.css (workspace shell). */
-
-/* ── Operations (settings view only; do not use on Command center) ─ */
+/* Operations — concise control-room layout */
 
 .ax-ops {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
   width: 100%;
-  max-width: none;
+}
+
+.ax-ops-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) auto;
+  gap: 20px;
+  align-items: end;
+  padding: 22px 24px;
+  border-radius: 18px;
+  border: 1px solid hsl(210 20% 22%);
+  background:
+    radial-gradient(90% 120% at 100% 0%, hsl(172 48% 38% / 0.28), transparent 50%),
+    linear-gradient(145deg, hsl(215 32% 11%), hsl(205 28% 16%));
+  color: #f3f7f5;
+  box-shadow: 0 24px 48px -28px rgba(8, 18, 28, 0.55);
+}
+
+.ax-ops-eyebrow {
+  display: inline-block;
+  margin-bottom: 8px;
+  font: 600 11px/1 var(--app-font-sans);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: hsl(172 58% 72%);
+}
+
+.ax-ops-hero h1 {
+  margin: 0 0 8px;
+  font: 600 clamp(1.9rem, 3.2vw, 2.55rem)/1 var(--app-font-serif);
+  letter-spacing: -0.045em;
+}
+
+.ax-ops-hero-copy p {
+  margin: 0;
+  color: rgba(243, 247, 245, 0.68);
+  font-size: 14px;
+}
+
+.ax-ops-hero-metrics {
+  display: grid;
+  grid-auto-flow: column;
+  gap: 10px;
+}
+
+.ax-ops-hero-metrics article {
+  min-width: 96px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ax-ops-hero-metrics span {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(243, 247, 245, 0.52);
+}
+
+.ax-ops-hero-metrics b {
+  display: block;
+  font: 600 1.35rem/1 var(--app-font-serif);
+  letter-spacing: -0.03em;
+}
+
+.ax-ops-hero-metrics small {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: rgba(243, 247, 245, 0.55);
+}
+
+.ax-ops-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 14px;
+  border: 1px solid var(--ax-border);
+  background: hsl(var(--muted) / 0.45);
+}
+
+.ax-ops-tab {
+  height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ax-soft);
+  font: 600 12.5px/1 var(--app-font-sans);
+  cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.ax-ops-tab:hover {
+  color: var(--ax-navy);
+  background: hsl(var(--background) / 0.8);
+}
+
+.ax-ops-tab.active {
+  color: #fff;
+  background: var(--ax-navy);
+  box-shadow: 0 10px 22px -14px rgba(15, 28, 42, 0.7);
+}
+
+.ax-ops-sec {
+  display: none;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ax-ops[data-tab='overview'] .ax-ops-sec[data-sec='overview'],
+.ax-ops[data-tab='organization'] .ax-ops-sec[data-sec='organization'],
+.ax-ops[data-tab='people'] .ax-ops-sec[data-sec='people'],
+.ax-ops[data-tab='security'] .ax-ops-sec[data-sec='security'],
+.ax-ops[data-tab='compliance'] .ax-ops-sec[data-sec='compliance'],
+.ax-ops[data-tab='audit'] .ax-ops-sec[data-sec='audit'] {
+  display: flex;
+}
+
+.ax-ops-jump {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ax-ops-jump-card {
+  display: grid;
+  gap: 6px;
+  text-align: left;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--ax-border);
+  background:
+    linear-gradient(180deg, hsl(var(--background)), hsl(var(--muted) / 0.35));
+  cursor: pointer;
+  transition: border-color 0.16s ease, transform 0.16s ease;
+}
+
+.ax-ops-jump-card:hover {
+  border-color: var(--ax-teal);
+  transform: translateY(-1px);
+}
+
+.ax-ops-jump-card b {
+  font: 600 13px/1.2 var(--app-font-serif);
+  letter-spacing: -0.02em;
+  color: var(--ax-navy);
+}
+
+.ax-ops-jump-card span {
+  font-size: 12px;
+  color: var(--ax-soft);
 }
 
 .ax-ops .ax-panel {
   margin: 0;
+  border-radius: 14px;
+  overflow: hidden;
 }
 
 .ax-ops .ax-panel-head {
@@ -44,7 +198,6 @@
 .ax-ops-stat span {
   font-size: 12px;
   color: var(--ax-soft);
-  letter-spacing: 0.01em;
 }
 
 .ax-ops-stat b {
@@ -288,6 +441,10 @@
 }
 
 @media (max-width: 1100px) {
+  .ax-ops-jump {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .ax-ops-fields-user,
   .ax-ops-fields-org,
   .ax-ops-fields-fac {
@@ -305,6 +462,15 @@
 }
 
 @media (max-width: 980px) {
+  .ax-ops-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .ax-ops-hero-metrics {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .ax-ops-stats,
   .ax-ops-meta,
   .ax-ops-form {
@@ -313,13 +479,15 @@
 }
 
 @media (max-width: 640px) {
+  .ax-ops-hero-metrics,
   .ax-ops-stats,
   .ax-ops-meta,
   .ax-ops-form,
   .ax-ops-user-form,
   .ax-ops-fields-user,
   .ax-ops-fields-org,
-  .ax-ops-fields-fac {
+  .ax-ops-fields-fac,
+  .ax-ops-jump {
     grid-template-columns: 1fr;
   }
 }

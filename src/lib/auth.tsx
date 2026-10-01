@@ -26,7 +26,7 @@ export function isAdminRole(role?: string | null): boolean {
 const ADMIN_VIEWS: WorkspaceView[] = [
   'overview', 'queue', 'registration', 'patients', 'schedule', 'providers', 'payers', 'eligibility', 'authorizations',
   'encounters', 'coding', 'charges', 'claims', 'denials', 'ar', 'payments', 'contracts', 'leakage',
-  'ai', 'packs', 'rules', 'settings',
+  'ai', 'integrations', 'packs', 'rules', 'settings',
 ];
 
 const ROLE_VIEWS: Record<RoleId, WorkspaceView[]> = {
@@ -34,13 +34,13 @@ const ROLE_VIEWS: Record<RoleId, WorkspaceView[]> = {
   admin: ADMIN_VIEWS,
   operator: [
     'overview', 'queue', 'registration', 'patients', 'schedule', 'providers', 'payers', 'eligibility', 'authorizations',
-    'encounters', 'coding', 'charges', 'claims', 'denials', 'ar', 'payments', 'leakage', 'ai', 'settings',
+    'encounters', 'coding', 'charges', 'claims', 'denials', 'ar', 'payments', 'leakage', 'ai', 'integrations', 'settings',
   ],
   coder: [
     'overview', 'queue', 'registration', 'patients', 'schedule', 'providers', 'encounters', 'coding', 'charges', 'claims', 'authorizations', 'ai',
   ],
   biller: [
-    'overview', 'queue', 'registration', 'patients', 'schedule', 'payers', 'eligibility', 'encounters', 'charges', 'claims', 'denials', 'ar', 'payments', 'contracts', 'leakage',
+    'overview', 'queue', 'registration', 'patients', 'schedule', 'payers', 'eligibility', 'encounters', 'charges', 'claims', 'denials', 'ar', 'payments', 'contracts', 'leakage', 'integrations',
   ],
   viewer: [
     'overview', 'patients', 'schedule', 'providers', 'payers', 'encounters', 'claims', 'denials', 'ar', 'payments', 'leakage', 'packs',

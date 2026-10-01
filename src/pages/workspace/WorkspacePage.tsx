@@ -47,6 +47,7 @@ import { Workforce } from './screens/ai/Workforce';
 import { CountryPacks } from './screens/packs/CountryPacks';
 import { Rules } from './screens/rules/Rules';
 import { Operations } from './screens/settings/Operations';
+import { Integrations } from './screens/integrations/Integrations';
 import './WorkspacePage.css';
 
 const THEME_KEY = 'velora-theme';
@@ -112,6 +113,8 @@ function renderView(view: WorkspaceView, setView: (view: WorkspaceView) => void)
       return <CountryPacks />;
     case 'rules':
       return <Rules />;
+    case 'integrations':
+      return <Integrations />;
     case 'settings':
       return <Operations />;
     default:

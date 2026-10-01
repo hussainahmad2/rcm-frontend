@@ -20,4 +20,5 @@ export type WorkspaceView =
   | 'ai'
   | 'packs'
   | 'rules'
+  | 'integrations'
   | 'settings';

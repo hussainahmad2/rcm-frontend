@@ -152,7 +152,6 @@ export function Operations() {
     queryFn: api.runbooks,
     enabled: isAdminRole(user?.role) || user?.role === 'operator',
   });
-  const inbox = useQuery({ queryKey: ['integration-messages'], queryFn: api.integrationMessages });
   const orgUnits = useQuery({ queryKey: ['organizations'], queryFn: api.organizations });
   const facilities = useQuery({ queryKey: ['facilities'], queryFn: api.facilities });
   const [newUser, setNewUser] = useState({
@@ -188,6 +187,7 @@ export function Operations() {
   const [baaNotes, setBaaNotes] = useState('');
   const [baaCounsel, setBaaCounsel] = useState({ firm: '', email: '', status: 'executed' as 'draft' | 'counsel_review' | 'executed' });
   const [breachForm, setBreachForm] = useState({ title: '', description: '', affectedIndividuals: 0 });
+  const [tab, setTab] = useState<'overview' | 'organization' | 'people' | 'security' | 'compliance' | 'audit'>('overview');
   const createOrganization = useMutation({
     mutationFn: () => api.createOrganization({ name: newOrg.name, type: newOrg.type }),
     onSuccess: (data) => {
@@ -438,7 +438,6 @@ export function Operations() {
   const org = tenant.data;
   const checks = readiness.data?.checks ?? [];
   const settings = onboarding.data?.settings;
-  const inboxRows = inbox.data ?? [];
   const directory = users.data ?? [];
   const checksPass = checks.filter((check: { ok?: boolean }) => check.ok).length;
   const organizationRows = orgUnits.data ?? [];
@@ -449,14 +448,60 @@ export function Operations() {
   const canDeleteDirectoryUser = (entry: { id: string; role: string }) =>
     Boolean(user) && entry.id !== user?.id && entry.role !== 'superadmin' && isAdminRole(user?.role);
 
-  return (
-    <div className="ax-view ax-ops">
-      <SectionHeading
-        eyebrow="Workspace controls"
-        title="Operations"
-        detail="Organization, people, identity, and compliance — one column, top to bottom."
-      />
+  const tabs = [
+    { id: 'overview' as const, label: 'Overview' },
+    { id: 'organization' as const, label: 'Organization' },
+    { id: 'people' as const, label: 'People' },
+    { id: 'security' as const, label: 'Security' },
+    { id: 'compliance' as const, label: 'Compliance' },
+    { id: 'audit' as const, label: 'Audit' },
+  ];
 
+  return (
+    <div className="ax-view ax-ops" data-tab={tab}>
+      <header className="ax-ops-hero">
+        <div className="ax-ops-hero-copy">
+          <span className="ax-ops-eyebrow">Control room</span>
+          <h1>Operations</h1>
+          <p>
+            {org?.name ?? 'Velora'} · {org?.homeCountry ?? '—'} · {String(readiness.data?.mode ?? 'enterprise')}
+          </p>
+        </div>
+        <div className="ax-ops-hero-metrics">
+          <article>
+            <span>Readiness</span>
+            <b>{readiness.data?.ready ? 'Ready' : 'Open'}</b>
+            <small>
+              {checksPass}/{checks.length || 0} controls
+            </small>
+          </article>
+          <article>
+            <span>People</span>
+            <b>{directory.length}</b>
+            <small>{user?.mfaEnabled ? 'MFA on' : 'MFA off'}</small>
+          </article>
+          <article>
+            <span>BAA</span>
+            <b>{settings?.baaAccepted ? 'Recorded' : 'Pending'}</b>
+            <small>{org?.countryPack ?? '—'}</small>
+          </article>
+        </div>
+      </header>
+
+      <nav className="ax-ops-tabs" aria-label="Operations sections">
+        {tabs.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            className={`ax-ops-tab ${tab === item.id ? 'active' : ''}`}
+            onClick={() => setTab(item.id)}
+          >
+            {item.label}
+          </button>
+        ))}
+      </nav>
+
+      <div className="ax-ops-sec" data-sec="overview">
       <div className="ax-ops-stats">
         <article className="ax-ops-stat">
           <span>Organization</span>
@@ -479,7 +524,19 @@ export function Operations() {
           <small>{String(readiness.data?.mode ?? 'enterprise')}</small>
         </article>
       </div>
+      <div className="ax-ops-jump">
+        {tabs
+          .filter((item) => item.id !== 'overview')
+          .map((item) => (
+            <button key={item.id} type="button" className="ax-ops-jump-card" onClick={() => setTab(item.id)}>
+              <b>{item.label}</b>
+              <span>Open {item.label.toLowerCase()} controls</span>
+            </button>
+          ))}
+      </div>
+      </div>
 
+      <div className="ax-ops-sec" data-sec="organization">
       <section className="ax-panel">
         <div className="ax-panel-head">
           <div>
@@ -764,7 +821,9 @@ export function Operations() {
           </div>
         </section>
       ) : null}
+      </div>
 
+      <div className="ax-ops-sec" data-sec="people">
       {isAdminRole(user?.role) ? (
         <section className="ax-panel">
           <div className="ax-panel-head">
@@ -919,7 +978,9 @@ export function Operations() {
           </div>
         </section>
       ) : null}
+      </div>
 
+      <div className="ax-ops-sec" data-sec="security">
       <section className="ax-panel">
         <div className="ax-panel-head">
           <div>
@@ -1049,7 +1110,9 @@ export function Operations() {
           </div>
         ) : null}
       </section>
+      </div>
 
+      <div className="ax-ops-sec" data-sec="compliance">
       {isAdminRole(user?.role) ? (
         <section className="ax-panel">
           <div className="ax-panel-head">
@@ -1406,52 +1469,9 @@ export function Operations() {
           </div>
         </section>
       ) : null}
+      </div>
 
-      <section className="ax-panel">
-        <div className="ax-panel-head">
-          <div>
-            <span className="ax-kicker">Integrations</span>
-            <h2>Message center</h2>
-          </div>
-          <StatusPill tone={inboxRows.length ? 'amber' : 'neutral'}>{inboxRows.length} messages</StatusPill>
-        </div>
-        {inboxRows.length ? (
-          <div className="ax-claims-table">
-            <div className="ax-table-head">
-              <span>Type</span>
-              <span>Direction</span>
-              <span>Entity</span>
-              <span>Status</span>
-              <span>Action</span>
-            </div>
-            {inboxRows.slice(0, 12).map((row: any) => (
-              <div className="ax-claim-row" key={row.id}>
-                <span>
-                  <b>{formatLabel(row.messageType)}</b>
-                  <small>{row.adapterKey || row.integrationId}</small>
-                </span>
-                <span>{row.direction}</span>
-                <span>{row.internalEntityId || '—'}</span>
-                <StatusPill tone={row.status === 'ERROR' ? 'coral' : row.status === 'PROCESSED' ? 'teal' : 'amber'}>
-                  {formatLabel(row.status)}
-                </StatusPill>
-                <button
-                  className="ax-outline-button"
-                  type="button"
-                  onClick={() =>
-                    api.retryIntegrationMessage(row.id).then(() => void queryClient.invalidateQueries({ queryKey: ['integration-messages'] }))
-                  }
-                >
-                  Retry
-                </button>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <OpsEmpty text="No integration messages. Partner traffic will land here." />
-        )}
-      </section>
-
+      <div className="ax-ops-sec" data-sec="audit">
       <section className="ax-panel">
         <div className="ax-panel-head">
           <div>
@@ -1493,6 +1513,7 @@ export function Operations() {
           <span>Recommendations stay explainable and wait for human approval before a financial record changes.</span>
         </div>
         <StatusPill tone="teal">Controls active</StatusPill>
+      </div>
       </div>
     </div>
   );
