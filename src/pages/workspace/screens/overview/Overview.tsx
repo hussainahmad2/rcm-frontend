@@ -335,18 +335,19 @@ export function Overview({ onNavigate }: { onNavigate: (view: WorkspaceView) => 
             <ResponsiveContainer width="100%" height={170}>
               <BarChart
                 data={[
-                  { stage: 'Charges', amount: Number(map.totalCharges?.amount ?? map.totalCharges ?? 0) },
-                  { stage: 'Billed', amount: Number(map.billed?.amount ?? map.billed ?? 0) },
-                  { stage: 'Outstanding', amount: Number(map.outstanding?.amount ?? map.outstanding ?? 0) },
-                  { stage: 'Paid', amount: Number(map.paid?.amount ?? map.paid ?? 0) },
+                  { stage: 'Charges', amount: amountOf(map.totalCharges) },
+                  { stage: 'Billed', amount: amountOf(map.billed) },
+                  { stage: 'Outstanding', amount: amountOf(map.outstanding) },
+                  { stage: 'Paid', amount: amountOf(map.paid) },
                 ]}
-                margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+                margin={{ top: 8, right: 8, left: 0, bottom: 4 }}
+                barCategoryGap="34%"
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                 <XAxis dataKey="stage" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} axisLine={false} tickLine={false} width={48} />
+                <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} axisLine={false} tickLine={false} width={40} />
                 <Tooltip formatter={(value: number) => money(value)} contentStyle={{ borderRadius: 8, border: '1px solid hsl(var(--border))' }} />
-                <Bar dataKey="amount" radius={[7, 7, 0, 0]} fill="#2a9d8f" />
+                <Bar dataKey="amount" maxBarSize={36} radius={[6, 6, 0, 0]} fill="#2a9d8f" />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -373,28 +374,32 @@ export function Overview({ onNavigate }: { onNavigate: (view: WorkspaceView) => 
             </button>
           </div>
           <div className="ax-action-list">
-            {actions.slice(0, 6).map((item: any, index: number) => (
-              <button
-                className="ax-action-row"
-                type="button"
-                key={`${item.label}-${index}`}
-                onClick={() => onNavigate('queue')}
-                data-testid={`button-action-${index}`}
-              >
-                <span className="ax-action-flag high">
-                  <AlertCircle size={14} />
-                </span>
-                <span className="ax-action-copy">
-                  <b>{item.label}</b>
-                  <small>{item.count != null ? `${item.count} items` : 'Priority action'}</small>
-                </span>
-                <span className="ax-action-value">
-                  {item.amount ? money(item.amount) : '—'}
-                  <small>Today</small>
-                </span>
-                <ChevronRight size={15} />
-              </button>
-            ))}
+            {actions.length === 0 ? (
+              <div className="ax-action-empty">No priority actions right now. Queue is clear.</div>
+            ) : (
+              actions.slice(0, 6).map((item: any, index: number) => (
+                <button
+                  className="ax-action-row"
+                  type="button"
+                  key={`${item.label}-${index}`}
+                  onClick={() => onNavigate('queue')}
+                  data-testid={`button-action-${index}`}
+                >
+                  <span className="ax-action-flag high">
+                    <AlertCircle size={14} />
+                  </span>
+                  <span className="ax-action-copy">
+                    <b>{item.label}</b>
+                    <small>{item.count != null ? `${item.count} items` : 'Priority action'}</small>
+                  </span>
+                  <span className="ax-action-value">
+                    <b>{item.amount ? money(item.amount) : '—'}</b>
+                    <small>Today</small>
+                  </span>
+                  <ChevronRight className="ax-action-chevron" size={15} aria-hidden />
+                </button>
+              ))
+            )}
           </div>
         </section>
       </div>

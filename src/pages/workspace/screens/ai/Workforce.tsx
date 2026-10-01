@@ -108,6 +108,7 @@ export function Workforce() {
         title: data?.insight?.headline ?? data?.agent?.name ?? 'Agent completed',
         description: data?.insight?.nextAction ?? 'Review the output below. Nothing posts until you approve.',
         variant: 'success',
+        navigateTo: 'ai',
       });
       void queryClient.invalidateQueries({ queryKey: ['ai-floor'] });
       void queryClient.invalidateQueries({ queryKey: ['agents'] });

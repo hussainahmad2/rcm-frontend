@@ -9,6 +9,9 @@ type ToasterToast = ToastProps & {
   title?: React.ReactNode;
   description?: React.ReactNode;
   action?: ToastActionElement;
+  /** Workspace screen to open when the toast body is clicked. */
+  navigateTo?: string;
+  onNavigate?: () => void;
 };
 
 const actionTypes = {

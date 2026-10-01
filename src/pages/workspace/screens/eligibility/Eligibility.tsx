@@ -117,6 +117,7 @@ export function Eligibility() {
         title: 'Coverage verified',
         description: 'Phone verification recorded. Coverage is marked verified.',
         variant: 'success',
+        navigateTo: 'eligibility',
       });
       void queryClient.invalidateQueries({ queryKey: ['coverages'] });
       void queryClient.invalidateQueries({ queryKey: ['work-items'] });

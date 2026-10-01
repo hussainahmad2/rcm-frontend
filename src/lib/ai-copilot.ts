@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from './api';
 import { toast } from '@/hooks/use-toast';
+import { viewForAiUseCase } from '@/lib/workspace-nav';
 
 export type AiCopilotSuggestion = {
   id: string;
@@ -56,6 +57,7 @@ export function useAiCopilot(enabled: boolean) {
         title: item.headline,
         description: item.nextAction || item.summary,
         variant: item.riskLevel === 'high' ? 'warning' : 'info',
+        navigateTo: viewForAiUseCase(item.useCase),
       });
     }
   }, [query.data]);

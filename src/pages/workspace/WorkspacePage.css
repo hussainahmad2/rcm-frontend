@@ -1117,9 +1117,18 @@ button.ax-metric {
   gap: 8px;
 }
 
+.ax-action-empty {
+  padding: 18px 14px;
+  border: 1px dashed var(--ax-border);
+  border-radius: 9px;
+  color: var(--ax-soft);
+  font-size: 13px;
+  text-align: center;
+}
+
 .ax-action-row {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   gap: 12px;
   align-items: center;
   width: 100%;
@@ -1164,9 +1173,28 @@ button.ax-metric {
 }
 
 .ax-action-value {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  min-width: 64px;
   text-align: right;
-  font: 700 13px var(--app-font-mono);
   color: var(--ax-navy);
+}
+
+.ax-action-value b {
+  font: 700 13px var(--app-font-mono);
+}
+
+.ax-action-value small {
+  font: 500 10px var(--app-font-sans);
+  color: var(--ax-soft);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.ax-action-chevron {
+  color: var(--ax-soft);
+  flex-shrink: 0;
 }
 
 .ax-insight-strip {

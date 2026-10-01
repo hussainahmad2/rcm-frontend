@@ -19,6 +19,7 @@ import { Link, useLocation } from 'wouter';
 import { api, money } from '@/lib/api';
 import { useAuth, isAdminRole } from '@/lib/auth';
 import { useAiCopilot } from '@/lib/ai-copilot';
+import { registerWorkspaceNavigator } from '@/lib/workspace-nav';
 import type { WorkspaceView } from './workspace-types';
 import { formatLabel } from './shared/format';
 import { navItems } from './shared/nav';
@@ -152,6 +153,8 @@ export default function WorkspacePage() {
   const userRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => registerWorkspaceNavigator(setView), []);
 
   const visibleNav = useMemo(
     () => navItems.filter((item) => canAccess(item.id)),
