@@ -105,19 +105,28 @@ export function Eligibility() {
       }),
     onSuccess: (data, coverageId) => {
       if (data?.error) {
-        toast({ title: 'Manual verify failed', description: String(data.error) });
+        toast({
+          title: 'Verification could not be saved',
+          description: String(data.error),
+          variant: 'destructive',
+        });
         return;
       }
       setManualByCoverage((current) => ({ ...current, [coverageId]: data }));
       toast({
-        title: 'Manual verification recorded',
-        description: 'Phone verification saved. Coverage is marked verified without an electronic 271.',
+        title: 'Coverage verified',
+        description: 'Phone verification recorded. Coverage is marked verified.',
+        variant: 'success',
       });
       void queryClient.invalidateQueries({ queryKey: ['coverages'] });
       void queryClient.invalidateQueries({ queryKey: ['work-items'] });
     },
     onError: (error: Error) => {
-      toast({ title: 'Manual verify failed', description: error.message });
+      toast({
+        title: 'Verification could not be saved',
+        description: error.message,
+        variant: 'destructive',
+      });
     },
   });
 

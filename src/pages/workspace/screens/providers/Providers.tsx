@@ -289,8 +289,9 @@ export function Providers() {
                                           }
                                           setEditingHoursId('');
                                           toast({
-                                            title: 'Hours updated',
-                                            description: `${dayLabel} ${editHours.startTime}–${editHours.endTime} for ${selected.name}`,
+                                            title: 'Schedule updated',
+                                            description: `${dayLabel} ${editHours.startTime}–${editHours.endTime} saved for ${selected.name}.`,
+                                            variant: 'success',
                                           });
                                           void queryClient.invalidateQueries({ queryKey: ['provider-schedules'] });
                                         })
@@ -403,8 +404,9 @@ export function Providers() {
                                 endTime: next.endTime,
                               });
                               toast({
-                                title: 'Hours added',
-                                description: `${dayLabel} ${hours.startTime}–${hours.endTime} for ${selected.name}`,
+                                title: 'Schedule hours added',
+                                description: `${dayLabel} ${hours.startTime}–${hours.endTime} saved for ${selected.name}.`,
+                                variant: 'success',
                               });
                               void queryClient.invalidateQueries({ queryKey: ['provider-schedules'] });
                             })
@@ -481,8 +483,9 @@ export function Providers() {
                     .then(() => {
                       if (editingHoursId === hoursDelete.id) setEditingHoursId('');
                       toast({
-                        title: 'Hours deleted',
-                        description: `${hoursDelete.dayLabel} ${hoursDelete.startTime}–{hoursDelete.endTime} removed for ${selected.name}`,
+                        title: 'Schedule hours removed',
+                        description: `${hoursDelete.dayLabel} ${hoursDelete.startTime}–${hoursDelete.endTime} removed for ${selected.name}.`,
+                        variant: 'success',
                       });
                       setHoursDelete(null);
                       void queryClient.invalidateQueries({ queryKey: ['provider-schedules'] });

@@ -55,6 +55,7 @@ export function useAiCopilot(enabled: boolean) {
       toast({
         title: item.headline,
         description: item.nextAction || item.summary,
+        variant: item.riskLevel === 'high' ? 'warning' : 'info',
       });
     }
   }, [query.data]);

@@ -130,8 +130,15 @@ export function Overview({ onNavigate }: { onNavigate: (view: WorkspaceView) => 
       ? value
       : Number((value as { amount?: number } | null | undefined)?.amount ?? 0) || 0;
 
+  const chargesTotal = amountOf(map.totalCharges);
+  const shareOfCharges = (part: unknown) => {
+    if (chargesTotal <= 0) return 0;
+    const pct = Math.round((amountOf(part) / chargesTotal) * 100);
+    return Math.max(0, Math.min(100, pct));
+  };
+
   const funnelData = [
-    { stage: 'Charges', amount: amountOf(map.totalCharges) },
+    { stage: 'Charges', amount: chargesTotal },
     { stage: 'Billed', amount: amountOf(map.billed) },
     { stage: 'Outstanding', amount: amountOf(map.outstanding) },
     { stage: 'Paid', amount: amountOf(map.paid) },
@@ -277,7 +284,7 @@ export function Overview({ onNavigate }: { onNavigate: (view: WorkspaceView) => 
                 amount: map.totalCharges ?? 0,
                 caption: `Unbilled ${money(map.unbilled ?? 0)}`,
                 icon: Receipt,
-                share: 100,
+                share: chargesTotal > 0 ? 100 : 0,
               },
               {
                 number: '02',
@@ -285,13 +292,7 @@ export function Overview({ onNavigate }: { onNavigate: (view: WorkspaceView) => 
                 amount: map.billed ?? 0,
                 caption: `Pending ${money(map.pending ?? 0)}`,
                 icon: FileCheck2,
-                share: Number(map.totalCharges?.amount ?? map.totalCharges ?? 0)
-                  ? Math.round(
-                      (Number(map.billed?.amount ?? map.billed ?? 0) /
-                        Number(map.totalCharges?.amount ?? map.totalCharges ?? 1)) *
-                        100,
-                    )
-                  : 0,
+                share: shareOfCharges(map.billed),
               },
               {
                 number: '03',
@@ -299,13 +300,7 @@ export function Overview({ onNavigate }: { onNavigate: (view: WorkspaceView) => 
                 amount: map.outstanding ?? 0,
                 caption: `At risk ${money(map.atRisk ?? 0)}`,
                 icon: Clock3,
-                share: Number(map.totalCharges?.amount ?? map.totalCharges ?? 0)
-                  ? Math.round(
-                      (Number(map.outstanding?.amount ?? map.outstanding ?? 0) /
-                        Number(map.totalCharges?.amount ?? map.totalCharges ?? 1)) *
-                        100,
-                    )
-                  : 0,
+                share: shareOfCharges(map.outstanding),
               },
               {
                 number: '04',
@@ -313,13 +308,7 @@ export function Overview({ onNavigate }: { onNavigate: (view: WorkspaceView) => 
                 amount: map.paid ?? 0,
                 caption: `Denied ${money(map.denied ?? 0)}`,
                 icon: CircleDollarSign,
-                share: Number(map.totalCharges?.amount ?? map.totalCharges ?? 0)
-                  ? Math.round(
-                      (Number(map.paid?.amount ?? map.paid ?? 0) /
-                        Number(map.totalCharges?.amount ?? map.totalCharges ?? 1)) *
-                        100,
-                    )
-                  : 0,
+                share: shareOfCharges(map.paid),
               },
             ].map((stage, index, list) => (
               <div className="ax-flow-node" key={stage.title}>
@@ -331,7 +320,7 @@ export function Overview({ onNavigate }: { onNavigate: (view: WorkspaceView) => 
                 <b>{money(stage.amount)}</b>
                 <small>{stage.caption}</small>
                 <div className="ax-flow-meter" aria-hidden>
-                  <i style={{ width: `${Math.max(stage.share, 8)}%` }} />
+                  <i style={{ width: `${stage.share}%` }} />
                 </div>
                 <em>{stage.share}% of charges</em>
                 {index < list.length - 1 ? <ChevronRight className="ax-flow-arrow" size={16} /> : null}

@@ -2,7 +2,7 @@ import * as React from 'react';
 import type { ToastActionElement, ToastProps } from '@/components/ui/toast';
 
 const TOAST_LIMIT = 3;
-const TOAST_REMOVE_DELAY = 7000;
+const TOAST_REMOVE_DELAY = 5200;
 
 type ToasterToast = ToastProps & {
   id: string;
@@ -157,7 +157,7 @@ function toast({ ...props }: Toast) {
     },
   });
 
-  setTimeout(() => dismiss(), 6500);
+  setTimeout(() => dismiss(), 4800);
 
   return {
     id: id,

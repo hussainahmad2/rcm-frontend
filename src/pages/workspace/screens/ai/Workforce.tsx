@@ -96,19 +96,28 @@ export function Workforce() {
     onMutate: (agentId) => setRunningId(agentId),
     onSuccess: (data) => {
       if (data?.error) {
-        toast({ title: 'Agent did not finish', description: String(data.error) });
+        toast({
+          title: 'Agent run incomplete',
+          description: String(data.error),
+          variant: 'destructive',
+        });
         return;
       }
       setRunResult(data);
       toast({
-        title: data?.insight?.headline ?? data?.agent?.name ?? 'Agent finished',
-        description: data?.insight?.nextAction ?? 'Review the output below. Nothing is posted until you approve.',
+        title: data?.insight?.headline ?? data?.agent?.name ?? 'Agent completed',
+        description: data?.insight?.nextAction ?? 'Review the output below. Nothing posts until you approve.',
+        variant: 'success',
       });
       void queryClient.invalidateQueries({ queryKey: ['ai-floor'] });
       void queryClient.invalidateQueries({ queryKey: ['agents'] });
     },
     onError: (error: Error) => {
-      toast({ title: 'Agent did not finish', description: error.message });
+      toast({
+        title: 'Agent run incomplete',
+        description: error.message,
+        variant: 'destructive',
+      });
     },
     onSettled: () => setRunningId(''),
   });
