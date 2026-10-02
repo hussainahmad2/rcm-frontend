@@ -449,6 +449,7 @@ export const api = {
     ackMessage?: string;
   }) => request<any>('/gateway/acknowledgements', { method: 'POST', body: JSON.stringify(body) }),
   denials: () => request<any[]>('/denials'),
+  denialDesk: () => request<any>('/denials/desk'),
   analyzeDenial: (id: string) => request<any>(`/denials/${id}/analyze`, { method: 'POST', body: '{}' }),
   promoteDenialPrevention: (id: string) =>
     request<any>(`/denials/${id}/prevent`, { method: 'POST', body: '{}' }),
@@ -460,6 +461,7 @@ export const api = {
     request<any>('/intelligence/refresh', { method: 'POST', body: '{}', timeoutMs: 12_000 }),
   agents: () => request<any[]>('/ai/agents'),
   aiFloor: () => request<any>('/ai/floor', { timeoutMs: 8_000 }),
+  aiExecutions: () => request<any[]>('/ai/executions'),
   aiHealth: () => request<any>('/ai/health', { timeoutMs: 8_000 }),
   aiCopilot: () => request<any>('/ai/copilot', { timeoutMs: 8_000 }),
   runAgent: (agentId: string, body?: Record<string, string>) =>

@@ -83,6 +83,7 @@ export function Denials() {
   const [selected, setSelected] = useState<string | null>(null);
   const [aiResult, setAiResult] = useState<any>(null);
   const denials = useQuery({ queryKey: ['denials', ws], queryFn: api.denials });
+  const desk = useQuery({ queryKey: ['denial-desk', ws], queryFn: api.denialDesk });
   const knowledge = useQuery({ queryKey: ['denial-knowledge', ws], queryFn: api.denialKnowledge });
   const analyze = useMutation({
     mutationFn: (id: string) => api.analyzeDenial(id),
@@ -116,6 +117,15 @@ export function Denials() {
         title="Denials & appeals"
         detail="Analyze root cause → write Denial Knowledge Base entry → promote executable scrub RuleVersion so the next claim is blocked before submission."
       />
+      {desk.data ? (
+        <section className="ax-denial-desk" aria-label="Recovery desk">
+          <p>{desk.data.nextAction}</p>
+          <span>
+            {desk.data.rejections} rejections to correct · {desk.data.denials} denials to review · {desk.data.appeals}{' '}
+            appeals waiting for approval
+          </span>
+        </section>
+      ) : null}
       <div className="ax-denial-summary">
         <div>
           <span>Open denials</span>
