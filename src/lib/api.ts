@@ -589,6 +589,8 @@ export const api = {
     request<any>(`/encounters/${encounterId}/capture-charges`, { method: 'POST', body: '{}' }),
   inquireClaimStatus: (id: string) =>
     request<any>(`/claims/${id}/status-inquiry`, { method: 'POST', body: '{}' }),
+  runDemoPayerRails: () =>
+    request<any>('/demo/payer-rails', { method: 'POST', body: '{}', timeoutMs: 90_000 }),
   adjudicateClaim: (id: string) =>
     request<any>(`/claims/${id}/adjudicate`, { method: 'POST', body: '{}' }),
   transitionDenial: (id: string, status: string, note?: string) =>

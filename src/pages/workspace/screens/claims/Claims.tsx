@@ -133,6 +133,18 @@ export function Claims() {
     },
     onError: (error) => setActionNote((error as Error).message),
   });
+  const demoRails = useMutation({
+    mutationFn: () => api.runDemoPayerRails(),
+    onSuccess: (data) => {
+      setActionNote(data?.error ?? data?.summary ?? 'Demo payer cycle finished.');
+      void queryClient.invalidateQueries({ queryKey: ['claims'] });
+      void queryClient.invalidateQueries({ queryKey: ['denials'] });
+      void queryClient.invalidateQueries({ queryKey: ['payments'] });
+      void queryClient.invalidateQueries({ queryKey: ['work-items'] });
+      void queryClient.invalidateQueries({ queryKey: ['authorizations-risk'] });
+    },
+    onError: (error) => setActionNote((error as Error).message),
+  });
   const adjudicate = useMutation({
     mutationFn: (id: string) => api.adjudicateClaim(id),
     onSuccess: (data, id) => {
@@ -173,11 +185,22 @@ export function Claims() {
       <SectionHeading
         eyebrow="Billing engine"
         title="Claims"
-        detail="Executable RuleVersion scrub — quality, payer context and denial risk before submission."
+        detail="Scrub, submit, then run the demo payer cycle for a simulated 276/277 and 835."
         action={
-          <button className="ax-outline-button" type="button" onClick={() => void claims.refetch()} data-testid="button-export-claims">
-            <RefreshCw size={14} /> Refresh
-          </button>
+          <span style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button
+              className="ax-primary-button"
+              type="button"
+              disabled={demoRails.isPending}
+              onClick={() => demoRails.mutate()}
+              data-testid="button-demo-payer-rails"
+            >
+              {demoRails.isPending ? 'Running demo…' : 'Run demo payer cycle'}
+            </button>
+            <button className="ax-outline-button" type="button" onClick={() => void claims.refetch()} data-testid="button-export-claims">
+              <RefreshCw size={14} /> Refresh
+            </button>
+          </span>
         }
       />
       {actionNote ? <div className="ax-insight-strip"><Sparkles size={17} /><span>{actionNote}</span></div> : null}
