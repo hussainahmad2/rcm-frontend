@@ -24,23 +24,27 @@ export function isAdminRole(role?: string | null): boolean {
 }
 
 const ADMIN_VIEWS: WorkspaceView[] = [
-  'overview', 'queue', 'registration', 'patients', 'schedule', 'providers', 'payers', 'eligibility', 'authorizations',
-  'encounters', 'coding', 'charges', 'claims', 'denials', 'ar', 'payments', 'contracts', 'leakage',
-  'ai', 'integrations', 'packs', 'rules', 'settings',
+  'overview', 'queue', 'registration', 'patients', 'identity', 'schedule', 'providers', 'payers', 'eligibility', 'estimates',
+  'referralsCob', 'authorizations', 'encounters', 'coding', 'charges', 'revenueIntegrity', 'claims', 'clearinghouse',
+  'denials', 'ar', 'arWorkbench', 'payments', 'paymentRec', 'collections', 'contracts', 'leakage',
+  'ai', 'integrations', 'packs', 'rules', 'audit', 'settings',
 ];
 
 const ROLE_VIEWS: Record<RoleId, WorkspaceView[]> = {
   superadmin: ADMIN_VIEWS,
   admin: ADMIN_VIEWS,
   operator: [
-    'overview', 'queue', 'registration', 'patients', 'schedule', 'providers', 'payers', 'eligibility', 'authorizations',
-    'encounters', 'coding', 'charges', 'claims', 'denials', 'ar', 'payments', 'leakage', 'ai', 'integrations', 'settings',
+    'overview', 'queue', 'registration', 'patients', 'identity', 'schedule', 'providers', 'payers', 'eligibility', 'estimates',
+    'referralsCob', 'authorizations', 'encounters', 'coding', 'charges', 'revenueIntegrity', 'claims', 'clearinghouse',
+    'denials', 'ar', 'arWorkbench', 'payments', 'paymentRec', 'collections', 'leakage', 'ai', 'integrations', 'settings',
   ],
   coder: [
-    'overview', 'queue', 'registration', 'patients', 'schedule', 'providers', 'encounters', 'coding', 'charges', 'claims', 'authorizations', 'ai',
+    'overview', 'queue', 'registration', 'patients', 'schedule', 'providers', 'encounters', 'coding', 'charges', 'revenueIntegrity', 'claims', 'authorizations', 'ai',
   ],
   biller: [
-    'overview', 'queue', 'registration', 'patients', 'schedule', 'payers', 'eligibility', 'encounters', 'charges', 'claims', 'denials', 'ar', 'payments', 'contracts', 'leakage', 'integrations',
+    'overview', 'queue', 'registration', 'patients', 'identity', 'schedule', 'payers', 'eligibility', 'estimates', 'referralsCob',
+    'encounters', 'charges', 'revenueIntegrity', 'claims', 'clearinghouse', 'denials', 'ar', 'arWorkbench', 'payments', 'paymentRec',
+    'collections', 'contracts', 'leakage', 'integrations',
   ],
   viewer: [
     'overview', 'patients', 'schedule', 'providers', 'payers', 'encounters', 'claims', 'denials', 'ar', 'payments', 'leakage', 'packs',
@@ -135,16 +139,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      try {
-        const [list, policy] = await Promise.all([api.tenants(), api.sessionPolicy()]);
-        if (!cancelled) {
-          setTenants(list);
-          setSessionTimeoutMinutes(policy.sessionTimeoutMinutes);
-        }
-      } catch {
-        if (!cancelled) setTenants([]);
-      }
-
+      // Restore session before marking ready so reload stays on workspace
+      // instead of flashing the login page.
       try {
         const refreshed = await api.refresh();
         if (cancelled) return;
@@ -157,6 +153,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } finally {
         if (!cancelled) setReady(true);
+      }
+
+      try {
+        const [list, policy] = await Promise.all([
+          api.tenants().catch(() => [] as AuthTenant[]),
+          api.sessionPolicy().catch(() => null),
+        ]);
+        if (cancelled) return;
+        setTenants(list);
+        if (policy?.sessionTimeoutMinutes) setSessionTimeoutMinutes(policy.sessionTimeoutMinutes);
+      } catch {
+        if (!cancelled) setTenants([]);
       }
     })();
     return () => {

@@ -8,12 +8,33 @@ import {
   ShieldCheck,
   LoaderCircle,
 } from 'lucide-react';
-import { api } from '@/lib/api';
+import { ApiError, api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { AuthShell } from './AuthShell';
 import './LoginPage.css';
 
 function formatAuthError(err: unknown) {
+  // Detailed diagnostics stay in the browser console / server logs — not in the UI.
+  console.error('[login]', err);
+
+  if (err instanceof ApiError) {
+    if (err.status === 0) {
+      return 'Sign-in timed out. Please try again in a moment.';
+    }
+    if (err.status === 401 || err.status === 403) {
+      const raw = err.message;
+      try {
+        const parsed = JSON.parse(raw) as { message?: string | string[] };
+        if (Array.isArray(parsed.message)) return parsed.message.join(', ');
+        if (parsed.message) return parsed.message;
+      } catch {
+        // fall through
+      }
+      if (/invalid|password|locked|attempt/i.test(raw)) return raw.replace(/^"|"$/g, '');
+      return 'Invalid email or password';
+    }
+    if (err.status >= 500) return 'Sign-in is temporarily unavailable. Please try again.';
+  }
   const raw = err instanceof Error ? err.message : 'Sign-in failed';
   try {
     const parsed = JSON.parse(raw) as { message?: string | string[] };
@@ -22,7 +43,7 @@ function formatAuthError(err: unknown) {
   } catch {
     // plain text
   }
-  return raw.replace(/^"|"$/g, '');
+  return 'Unable to sign in. Please try again.';
 }
 
 export default function LoginPage() {
@@ -97,6 +118,7 @@ export default function LoginPage() {
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
+    if (submitting) return;
     setError(null);
     setSubmitting(true);
     try {
@@ -108,6 +130,10 @@ export default function LoginPage() {
       if (mfaEnrollPending) {
         await completeMfaEnroll(mfaCode.trim());
         setLocation('/workspace');
+        return;
+      }
+      if (!email.trim() || !password) {
+        setError('Email and password are required');
         return;
       }
       const result = await login(email.trim(), password);

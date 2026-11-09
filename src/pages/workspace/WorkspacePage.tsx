@@ -27,7 +27,6 @@ import { BrandLockup } from './shared/ui';
 import { Overview } from './screens/overview/Overview';
 import { RoleHome } from './screens/overview/RoleHome';
 import { WorkQueue } from './screens/queue/WorkQueue';
-import { RegistrationDesk } from './screens/registration/RegistrationDesk';
 import { Patients } from './screens/patients/Patients';
 import { ScheduleBoard } from './screens/schedule/ScheduleBoard';
 import { Providers } from './screens/providers/Providers';
@@ -48,6 +47,17 @@ import { CountryPacks } from './screens/packs/CountryPacks';
 import { Rules } from './screens/rules/Rules';
 import { Operations } from './screens/settings/Operations';
 import { Integrations } from './screens/integrations/Integrations';
+import {
+  ArWorkbench,
+  AuditCompliance,
+  ClearinghouseTracking,
+  FinancialEstimates,
+  IdentityVerification,
+  PatientCollections,
+  PaymentReconciliation,
+  ReferralsCob,
+  RevenueIntegrity,
+} from './screens/gap/GapModules';
 import './WorkspacePage.css';
 
 const THEME_KEY = 'velora-theme';
@@ -76,7 +86,6 @@ function renderView(view: WorkspaceView, setView: (view: WorkspaceView) => void)
     case 'queue':
       return <WorkQueue />;
     case 'registration':
-      return <RegistrationDesk />;
     case 'patients':
       return <Patients />;
     case 'schedule':
@@ -87,6 +96,12 @@ function renderView(view: WorkspaceView, setView: (view: WorkspaceView) => void)
       return <Payers />;
     case 'eligibility':
       return <Eligibility />;
+    case 'identity':
+      return <IdentityVerification />;
+    case 'estimates':
+      return <FinancialEstimates />;
+    case 'referralsCob':
+      return <ReferralsCob />;
     case 'authorizations':
       return <Authorizations />;
     case 'encounters':
@@ -95,14 +110,24 @@ function renderView(view: WorkspaceView, setView: (view: WorkspaceView) => void)
       return <Coding />;
     case 'charges':
       return <Charges />;
+    case 'revenueIntegrity':
+      return <RevenueIntegrity />;
     case 'claims':
       return <Claims />;
+    case 'clearinghouse':
+      return <ClearinghouseTracking />;
     case 'denials':
       return <Denials />;
     case 'ar':
       return <ArQueue />;
+    case 'arWorkbench':
+      return <ArWorkbench />;
     case 'payments':
       return <Payments />;
+    case 'paymentRec':
+      return <PaymentReconciliation />;
+    case 'collections':
+      return <PatientCollections />;
     case 'contracts':
       return <Contracts />;
     case 'leakage':
@@ -115,6 +140,8 @@ function renderView(view: WorkspaceView, setView: (view: WorkspaceView) => void)
       return <Rules />;
     case 'integrations':
       return <Integrations />;
+    case 'audit':
+      return <AuditCompliance />;
     case 'settings':
       return <Operations />;
     default:

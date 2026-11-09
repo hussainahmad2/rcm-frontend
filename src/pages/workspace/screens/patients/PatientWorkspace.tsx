@@ -192,8 +192,28 @@ export function PatientWorkspace({
           <div>
             <span>Legal name</span>
             <b>
-              {selected.namePrefix} {selected.firstName} {selected.middleName} {selected.lastName} {selected.nameSuffix}
+              {[selected.namePrefix, selected.firstName, selected.middleName, selected.lastName, selected.nameSuffix].filter(Boolean).join(' ')}
             </b>
+          </div>
+          <div>
+            <span>Sex / billing sex</span>
+            <b>{selected.sex || '—'} / {selected.sexForBilling || selected.sex || '—'}</b>
+          </div>
+          <div>
+            <span>Gender identity</span>
+            <b>{selected.genderIdentity || '—'}</b>
+          </div>
+          <div>
+            <span>Marital status</span>
+            <b>{selected.maritalStatus || '—'}</b>
+          </div>
+          <div>
+            <span>Race / ethnicity</span>
+            <b>{[selected.race, selected.ethnicity].filter(Boolean).join(' · ') || '—'}</b>
+          </div>
+          <div>
+            <span>National ID / SSN last 4</span>
+            <b>{selected.nationalId || '—'}{selected.ssnLast4 ? ` · ****${selected.ssnLast4}` : ''}</b>
           </div>
           <div>
             <span>Phone</span>
@@ -202,6 +222,34 @@ export function PatientWorkspace({
           <div>
             <span>Email</span>
             <b>{selected.email || '—'}</b>
+          </div>
+          <div>
+            <span>Address</span>
+            <b>
+              {[selected.addressLine1, selected.addressLine2, selected.city, selected.stateRegion, selected.postalCode]
+                .filter(Boolean)
+                .join(', ') || '—'}
+            </b>
+          </div>
+          <div>
+            <span>Emergency contact</span>
+            <b>
+              {selected.emergencyContactName
+                ? `${selected.emergencyContactName}${selected.emergencyContactRelation ? ` (${selected.emergencyContactRelation})` : ''}${selected.emergencyContactPhone ? ` · ${selected.emergencyContactPhone}` : ''}`
+                : '—'}
+            </b>
+          </div>
+          <div>
+            <span>Employer / occupation</span>
+            <b>{[selected.employerName, selected.occupation].filter(Boolean).join(' · ') || '—'}</b>
+          </div>
+          <div>
+            <span>Preferred pharmacy</span>
+            <b>{selected.preferredPharmacy || '—'}</b>
+          </div>
+          <div>
+            <span>Language</span>
+            <b>{selected.preferredLocale || '—'}</b>
           </div>
           <div>
             <span>Country / pack</span>

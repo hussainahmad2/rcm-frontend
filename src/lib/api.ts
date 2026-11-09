@@ -47,27 +47,36 @@ function sleep(ms: number) {
 async function refreshAccessToken(): Promise<boolean> {
   if (refreshPromise) return refreshPromise;
   refreshPromise = (async () => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5_000);
     try {
       const response = await fetch(apiUrl('/auth/refresh'), {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: '{}',
+        signal: controller.signal,
       });
       if (!response.ok) {
         clearAccessToken();
         return false;
       }
       const data = (await response.json()) as {
-        accessToken: string;
-        accessExpiresIn: number;
+        accessToken?: string;
+        accessExpiresIn?: number;
+        authenticated?: false;
       };
-      setAccessToken(data.accessToken, data.accessExpiresIn);
+      if (!data.accessToken || data.authenticated === false) {
+        clearAccessToken();
+        return false;
+      }
+      setAccessToken(data.accessToken, data.accessExpiresIn ?? 600);
       return true;
     } catch {
       clearAccessToken();
       return false;
     } finally {
+      clearTimeout(timer);
       refreshPromise = null;
     }
   })();
@@ -193,23 +202,29 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
       auth: false,
+      timeoutMs: 8_000,
+      retry: false,
     }),
   verifyMfa: (body: { mfaToken: string; code: string }) =>
     request<AuthSessionPayload>('/auth/mfa/verify', {
       method: 'POST',
       body: JSON.stringify(body),
       auth: false,
+      timeoutMs: 8_000,
+      retry: false,
     }),
   beginMfaBootstrap: (enrollToken: string) =>
     request<{ secret: string; otpauthUrl: string; recoveryCodes: string[]; expiresIn: number }>(
       '/auth/mfa/enroll-bootstrap',
-      { method: 'POST', body: JSON.stringify({ enrollToken }), auth: false },
+      { method: 'POST', body: JSON.stringify({ enrollToken }), auth: false, timeoutMs: 8_000, retry: false },
     ),
   confirmMfaBootstrap: (body: { enrollToken: string; code: string }) =>
     request<AuthSessionPayload>('/auth/mfa/confirm-bootstrap', {
       method: 'POST',
       body: JSON.stringify(body),
       auth: false,
+      timeoutMs: 8_000,
+      retry: false,
     }),
   ssoProviders: () =>
     request<Array<{ id: string; label: string; configured: boolean }>>('/auth/sso/providers', {
@@ -339,15 +354,31 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ evidenceUri }),
     }),
-  refresh: () => request<AuthSessionPayload>('/auth/refresh', { method: 'POST', body: '{}', auth: false }),
-  logout: () => request<{ ok: boolean }>('/auth/logout', { method: 'POST', body: '{}', auth: false }),
+  refresh: async () => {
+    const payload = await request<AuthSessionPayload | { authenticated: false }>(
+      '/auth/refresh',
+      { method: 'POST', body: '{}', auth: false, timeoutMs: 5_000, retry: false },
+    );
+    if (payload && 'authenticated' in payload && payload.authenticated === false) {
+      throw new ApiError(401, 'No active session');
+    }
+    return payload as AuthSessionPayload;
+  },
+  logout: () =>
+    request<{ ok: boolean }>('/auth/logout', {
+      method: 'POST',
+      body: '{}',
+      auth: false,
+      timeoutMs: 5_000,
+      retry: false,
+    }),
   me: () => request<{ user: AuthUser; tenant: AuthTenant; accessExpiresIn: number }>('/auth/me'),
   changePassword: (body: { currentPassword: string; newPassword: string }) =>
     request<{ ok: boolean }>('/auth/change-password', {
       method: 'POST',
       body: JSON.stringify(body),
     }),
-  tenants: () => request<AuthTenant[]>('/auth/tenants', { auth: false }),
+  tenants: () => request<AuthTenant[]>('/auth/tenants', { auth: false, timeoutMs: 5_000, retry: false }),
   sessionPolicy: () =>
     request<{
       accessExpiresIn: number;
@@ -363,7 +394,7 @@ export const api = {
         requireNumber: boolean;
         requireSpecial: boolean;
       };
-    }>('/auth/session-policy', { auth: false }),
+    }>('/auth/session-policy', { auth: false, timeoutMs: 5_000, retry: false }),
   listUsers: () => request<AuthUser[]>('/auth/users'),
   createUser: (body: {
     email: string;
@@ -573,8 +604,39 @@ export const api = {
     diagnosisCode?: string;
     payerId?: string;
   }) => request<any>('/authorizations/evaluate', { method: 'POST', body: JSON.stringify(body) }),
-  createEstimate: (body: { coverageId: string; chargedAmount: number }) =>
-    request<any>('/estimates', { method: 'POST', body: JSON.stringify(body) }),
+  createEstimate: (body: {
+    coverageId: string;
+    chargedAmount: number;
+    contractualAdjustment?: number;
+    allowedAmount?: number;
+    priorPatientPayments?: number;
+    otherPayerPaid?: number;
+  }) => request<any>('/estimates', { method: 'POST', body: JSON.stringify(body) }),
+  listEstimates: () => request<any[]>('/estimates'),
+  benefitsCalculate: (body: Record<string, unknown>) =>
+    request<any>('/benefits/calculate', { method: 'POST', body: JSON.stringify(body) }),
+  identityCases: () => request<any[]>('/identity/cases'),
+  memberMatches: () => request<any[]>('/identity/member-matches'),
+  identityVerify: (body: Record<string, unknown>) =>
+    request<any>('/identity/verify', { method: 'POST', body: JSON.stringify(body) }),
+  listCob: () => request<any[]>('/cob'),
+  secondaryLinks: () => request<any[]>('/cob/secondary-links'),
+  cobDetermine: (patientId?: string) =>
+    request<any>('/cob/determine', { method: 'POST', body: JSON.stringify({ patientId }) }),
+  listReferrals: () => request<any[]>('/referrals'),
+  revenueIntegrity: () => request<any[]>('/revenue-integrity'),
+  lateCharges: () => request<any[]>('/revenue-integrity/late-charges'),
+  runRevenueIntegrity: (encounterId?: string) =>
+    request<any>(`/encounters/${encounterId}/revenue-integrity`, { method: 'POST', body: '{}' }),
+  bankDeposits: () => request<any[]>('/bank-deposits'),
+  unappliedCash: () => request<any[]>('/unapplied-cash'),
+  creditBalances: () => request<any[]>('/credit-balances'),
+  patientStatements: () => request<any[]>('/patient-statements'),
+  collectionPlans: () => request<any[]>('/patient-collections/payment-plans'),
+  arWorkbench: () => request<any[]>('/ar/workbench'),
+  arWorkbenchAging: () => request<any>('/ar/workbench/aging'),
+  permissionCatalog: () => request<any[]>('/compliance/permissions/catalog'),
+  permissionGrants: () => request<any[]>('/compliance/permissions/grants'),
   eligibilityCheck: (coverageId: string) =>
     request('/eligibility/check', { method: 'POST', body: JSON.stringify({ coverageId }) }),
   codingSuggest: (encounterId: string) =>

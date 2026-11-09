@@ -40,18 +40,20 @@ export function Metric({
   tone = 'teal',
 }: {
   label: string;
-  value: string;
+  value: string | number;
   delta?: string;
-  icon: LucideIcon;
+  icon?: LucideIcon | null;
   tone?: string;
 }) {
   return (
     <article className="ax-metric" data-testid={`metric-${label.toLowerCase().replace(/\s/g, '-')}`}>
       <div className="ax-metric-top">
         <span>{label}</span>
-        <span className={`ax-metric-icon ${tone}`}>
-          <Icon size={15} />
-        </span>
+        {typeof Icon === 'function' ? (
+          <span className={`ax-metric-icon ${tone}`}>
+            <Icon size={15} />
+          </span>
+        ) : null}
       </div>
       <strong>{value}</strong>
       {delta ? <small className={delta.startsWith('↓') || delta.startsWith('â†“') ? 'positive' : 'warning'}>{delta}</small> : null}
@@ -60,22 +62,26 @@ export function Metric({
 }
 
 export function SectionHeading({
-  eyebrow,
+  eyebrow = 'Velora RCM',
   title,
   detail,
+  subtitle,
   action,
 }: {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   detail?: string;
+  /** @deprecated use detail */
+  subtitle?: string;
   action?: ReactNode;
 }) {
+  const description = detail ?? subtitle;
   return (
     <div className="ax-section-heading">
       <div>
         <span className="ax-kicker">{eyebrow}</span>
         <h1>{title}</h1>
-        {detail ? <p>{detail}</p> : null}
+        {description ? <p>{description}</p> : null}
       </div>
       {action}
     </div>

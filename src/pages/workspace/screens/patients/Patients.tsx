@@ -1,80 +1,8 @@
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { LucideIcon } from 'lucide-react';
-import {
-  Activity,
-  AlertCircle,
-  ArrowDownRight,
-  ArrowRight,
-  ArrowUpRight,
-  BadgeDollarSign,
-  BarChart3,
-  Bell,
-  Bot,
-  Building2,
-  Check,
-  CheckCircle2,
-  ChevronDown,
-  ChevronRight,
-  CircleDollarSign,
-  ClipboardCheck,
-  ClipboardList,
-  ClipboardPlus,
-  Clock3,
-  CalendarDays,
-  Command,
-  FileCheck2,
-  FileText,
-  Filter,
-  Gavel,
-  Globe2,
-  Handshake,
-  Hospital,
-  KeyRound,
-  LayoutDashboard,
-  ListFilter,
-  LockKeyhole,
-  LogOut,
-  Menu,
-  Moon,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Receipt,
-  RefreshCw,
-  Search,
-  Settings,
-  Settings2,
-  ShieldAlert,
-  ShieldCheck,
-  SlidersHorizontal,
-  Sparkles,
-  Stethoscope,
-  Sun,
-  UserRoundCheck,
-  UsersRound,
-  X,
-} from 'lucide-react';
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
-import { api, asPercent, money } from '@/lib/api';
-import { useAuth, isAdminRole } from '@/lib/auth';
-import { toast } from '@/hooks/use-toast';
-import type { WorkspaceView } from '../../workspace-types';
-import { formatLabel, parseAiInsight, priorityTone, resolveJobInsight, statusTone } from '../../shared/format';
-import { ErrorState, InsightCard, JobResultPanel, LoadingState, Metric, SectionHeading, StatusPill } from '../../shared/ui';
-import { useTenantScope } from '../../shared/use-tenant-scope';
+import { PanelLeftOpen, Search, UsersRound, X } from 'lucide-react';
+import { api, money } from '@/lib/api';
+import { ErrorState, LoadingState, SectionHeading, StatusPill } from '../../shared/ui';
 import { AddPatientFlow } from './AddPatientFlow';
 import { PatientWorkspace } from './PatientWorkspace';
 import './Patients.css';
@@ -84,7 +12,7 @@ export function Patients() {
   const [selectedId, setSelectedId] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [note, setNote] = useState('');
-  const [search, setSearch] = useState({ firstName: '', lastName: '', dob: '' });
+  const [search, setSearch] = useState({ firstName: '', lastName: '', dob: '', mrn: '' });
   const [matches, setMatches] = useState<any[] | null>(null);
   const patients = useQuery({ queryKey: ['patients'], queryFn: api.patients });
   const find = useMutation({
@@ -96,19 +24,42 @@ export function Patients() {
   if (patients.error) return <div className="ax-view"><ErrorState error={patients.error} onRetry={() => void patients.refetch()} /></div>;
 
   const list = patients.data ?? [];
+  const filtered = list.filter((patient: any) => {
+    const qFirst = search.firstName.trim().toLowerCase();
+    const qLast = search.lastName.trim().toLowerCase();
+    const qMrn = search.mrn.trim().toLowerCase();
+    if (qFirst && !String(patient.firstName ?? '').toLowerCase().includes(qFirst)) return false;
+    if (qLast && !String(patient.lastName ?? '').toLowerCase().includes(qLast)) return false;
+    if (search.dob && patient.dob !== search.dob) return false;
+    if (qMrn && !String(patient.mrn ?? '').toLowerCase().includes(qMrn)) return false;
+    return true;
+  });
 
   return (
     <div className="ax-view">
       <SectionHeading
-        eyebrow="Practice management"
+        eyebrow="Front desk"
         title="Patients"
-        detail={`${list.length} patients · search before you create — duplicate records break eligibility, claims, and A/R`}
+        detail={`${list.length} registered · search first, then register from this desk`}
+        action={
+          <button className="ax-primary-button" type="button" onClick={() => setShowCreate(true)} data-testid="button-add-patient">
+            Register patient
+          </button>
+        }
       />
+
+      {note ? (
+        <div className="ax-insight-strip" style={{ marginBottom: 16 }}>
+          <UsersRound size={17} />
+          <span>{note}</span>
+        </div>
+      ) : null}
+
       <section className="ax-panel" style={{ marginBottom: 16 }}>
         <div className="ax-panel-head">
           <div>
-            <span className="ax-kicker">Patient search</span>
-            <h2>Look up before adding</h2>
+            <span className="ax-kicker">Directory filter</span>
+            <h2>Find a patient</h2>
           </div>
         </div>
         <div className="ax-reg-fields">
@@ -124,15 +75,19 @@ export function Patients() {
             DOB
             <input type="date" value={search.dob} onChange={(e) => setSearch((s) => ({ ...s, dob: e.target.value }))} />
           </label>
+          <label>
+            MRN
+            <input value={search.mrn} onChange={(e) => setSearch((s) => ({ ...s, mrn: e.target.value }))} />
+          </label>
         </div>
         <div className="ax-row-actions" style={{ marginTop: 12 }}>
-          <button className="ax-primary-button" type="button" onClick={() => find.mutate()} data-testid="button-patient-search">
-            Search
+          <button className="ax-outline-button" type="button" onClick={() => find.mutate()} data-testid="button-patient-search">
+            <Search size={14} /> Duplicate check
           </button>
         </div>
         {matches ? (
           <div className="ax-search-matches">
-            {matches.length === 0 ? <p>No matches. You can add a new patient.</p> : null}
+            {matches.length === 0 ? <p>No matches. Safe to register a new patient.</p> : null}
             {matches.map((patient: any) => (
               <button key={patient.id} type="button" className="ax-queue-row" onClick={() => setSelectedId(patient.id)}>
                 <span>
@@ -145,42 +100,32 @@ export function Patients() {
           </div>
         ) : null}
       </section>
-      {note ? (
-        <div className="ax-insight-strip">
-          <UsersRound size={17} />
-          <span>{note}</span>
-        </div>
-      ) : null}
-      {showCreate ? (
-        <AddPatientFlow
-          onCancel={() => setShowCreate(false)}
-          onCreated={(patientId, message) => {
-            setNote(message);
-            setShowCreate(false);
-            setSelectedId(patientId);
-            void queryClient.invalidateQueries({ queryKey: ['patients'] });
-            void queryClient.invalidateQueries({ queryKey: ['coverages'] });
-          }}
-        />
-      ) : (
-        <div className="ax-queue-layout">
-          <section className="ax-panel ax-queue-list">
-            <div className="ax-panel-head">
-              <div>
-                <span className="ax-kicker">Directory</span>
-                <h2>{list.length} records</h2>
-              </div>
-              <button className="ax-primary-button" type="button" onClick={() => setShowCreate(true)} data-testid="button-add-patient">
-                Add patient
+
+      <div className="ax-queue-layout">
+        <section className="ax-panel ax-queue-list">
+          <div className="ax-panel-head">
+            <div>
+              <span className="ax-kicker">Registered patients</span>
+              <h2>{filtered.length} records</h2>
+            </div>
+          </div>
+          <div className="ax-table-head">
+            <span>Patient</span>
+            <span>MRN / market</span>
+            <span>Balance</span>
+            <span>Status</span>
+          </div>
+          {filtered.length === 0 ? (
+            <div className="ax-empty" style={{ padding: 24 }}>
+              <UsersRound size={22} />
+              <b>No patients yet</b>
+              <p>Register the first patient to open eligibility, coverage, and billing.</p>
+              <button className="ax-primary-button" type="button" onClick={() => setShowCreate(true)}>
+                Register patient
               </button>
             </div>
-            <div className="ax-table-head">
-              <span>Patient</span>
-              <span>MRN / market</span>
-              <span>Balance</span>
-              <span>Status</span>
-            </div>
-            {list.map((patient: any) => (
+          ) : (
+            filtered.map((patient: any) => (
               <button
                 type="button"
                 className={`ax-queue-row ${selectedId === patient.id ? 'selected' : ''}`}
@@ -196,7 +141,10 @@ export function Patients() {
                     <b>
                       {patient.firstName} {patient.lastName}
                     </b>
-                    <small>{patient.id}</small>
+                    <small>
+                      {patient.sex || '—'} · DOB {patient.dob}
+                      {patient.phone ? ` · ${patient.phone}` : ''}
+                    </small>
                   </span>
                 </span>
                 <span className="ax-queue-context">
@@ -208,22 +156,53 @@ export function Patients() {
                   {patient.registrationStatus === 'DRAFT' ? 'Draft' : patient.source === 'MANUAL' ? 'Manual' : 'Active'}
                 </StatusPill>
               </button>
-            ))}
-          </section>
-          <aside className="ax-panel ax-inspection">
-            {!selectedId ? (
-              <div className="ax-empty">
-                <PanelLeftOpen size={22} />
-                <b>Select a patient</b>
-                <p>Open the financial-access workspace: identity, coverage/COB, claims, and activity.</p>
+            ))
+          )}
+        </section>
+        <aside className="ax-panel ax-inspection">
+          {!selectedId ? (
+            <div className="ax-empty">
+              <PanelLeftOpen size={22} />
+              <b>Select a patient</b>
+              <p>Open identity, demographics, coverage/COB, claims, and activity.</p>
+            </div>
+          ) : (
+            <PatientWorkspace patientId={selectedId} onClose={() => setSelectedId('')} />
+          )}
+        </aside>
+      </div>
+
+      {showCreate ? (
+        <div className="ax-modal-backdrop" role="presentation" onClick={() => setShowCreate(false)}>
+          <div
+            className="ax-modal ax-register-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Register patient"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="ax-modal-head">
+              <div>
+                <span className="ax-kicker">Registration</span>
+                <h2>Register patient</h2>
               </div>
-            ) : (
-              <PatientWorkspace patientId={selectedId} />
-            )}
-          </aside>
+              <button className="ax-ghost-button" type="button" onClick={() => setShowCreate(false)} aria-label="Close">
+                <X size={16} />
+              </button>
+            </div>
+            <AddPatientFlow
+              onCancel={() => setShowCreate(false)}
+              onCreated={(patientId, message) => {
+                setNote(message);
+                setShowCreate(false);
+                setSelectedId(patientId);
+                void queryClient.invalidateQueries({ queryKey: ['patients'] });
+                void queryClient.invalidateQueries({ queryKey: ['coverages'] });
+              }}
+            />
+          </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
-

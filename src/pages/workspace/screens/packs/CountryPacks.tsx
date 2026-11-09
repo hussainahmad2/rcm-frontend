@@ -134,7 +134,7 @@ export function CountryPacks() {
         <span className="ax-kicker">Data intake</span>
         <h3 style={{ margin: '6px 0 10px', fontFamily: 'var(--app-font-serif)' }}>How data enters Velora</h3>
         <p style={{ marginTop: 0, maxWidth: 720, color: 'var(--ax-soft)', lineHeight: 1.5 }}>
-          Day-to-day standalone use happens in <b style={{ color: 'var(--ax-ink)' }}>Registration desk</b> — staff enter
+          Day-to-day standalone use happens in <b style={{ color: 'var(--ax-ink)' }}>Patients</b> — staff register
           patients, coverage, encounters, and charges in the UI. No EHR is required.
         </p>
         <p style={{ marginTop: 0, maxWidth: 720, color: 'var(--ax-soft)', lineHeight: 1.5 }}>
@@ -144,7 +144,7 @@ export function CountryPacks() {
         <div className="ax-concept-list">
           <span>
             <CheckCircle2 size={14} />
-            Registration desk (standalone)
+            Patients registration (standalone)
           </span>
           <span>
             <CheckCircle2 size={14} />
